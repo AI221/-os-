@@ -1,0 +1,7 @@
+local x,y=term.getSize()
+for i=1,y+1 do
+  paintutils.drawLine(1,i-1,51,i-1,colors.black)
+  paintutils.drawLine(1,i,51,i,colors.lightGray)
+  sleep(0)
+end
+term.setCursorPos(1,1)
