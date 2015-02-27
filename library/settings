@@ -1,0 +1,32 @@
+--adjust os settings nonfunctional
+--since this is a terminal OS, this will only take
+--up a small part of the screen and right under the
+--launch command
+ settingsStuff= {}
+local _
+_,settingsStuff.y=term.getCursorPos()
+function settingsStuff.clear()
+  local i
+  for i=0,8 do
+    paintutils.drawLine(1,settingsStuff.y+i,term.getSize(),settingsStuff.y+i,colors.lime)   
+  end
+  
+end
+function settingsStuff.home()
+  --check to make sure we can do this
+  local _,y=term.getSize()
+  if (settingsStuff.y+8)>y then--too big
+    for i=1,(settingsStuff.y+8)-y do
+      print()
+      settingsStuff.y=settingsStuff.y-1
+    end
+  end
+  settingsStuff.clear()
+  term.setBackgroundColor(colors.lime)
+  term.setTextColor(colors.black)
+  term.setCursorPos(1,settingsStuff.y)
+  osStuff.centerPrint"SETTINGS - HOME"
+  settingsStuff.makeButton
+end
+settingsStuff.home()
+term.setCursorPos(1,settingsStuff.y+9)
