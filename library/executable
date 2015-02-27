@@ -1,0 +1,227 @@
+--[[
+ARS:
+1 - "nosplash" for no splash
+2 - The program to run after bootup
+3- "nopass" to bypass the password. Note that there is no way you can get the boot function to do this before entering the password. The password lock is completely safe.
+
+]]
+--config:
+
+
+
+--load game-engine
+os.loadAPI"Game-Engine/redirect"
+os.loadAPI"Game-Engine/game"
+--aliases
+shell.setAlias("clear","/library/clear")
+shell.setAlias("wipe","/library/wipe")
+shell.setAlias("settings","/library/settings")
+shell.setAlias("lock","/library/pswd")
+--force shell.programs to include our aliases
+local a = shell.programs
+function shell.programs(...)
+  local b = a(...)
+  b[#b+1]="wipe"
+  b[#b+1]="settings"
+  b[#b+1]="lock"
+  return b
+end
+--no terminate
+local ospe=os.pullEvent
+os.pullEvent = coroutine.yield
+
+--code
+osStuff={}
+osStuff.splashes ={"The cake is a lie!","I don't know what you want me to say.","Total freedom!",";;","SPLASH!","Top-level coroutine!","TwoOS!","startx... why not starty?","","This text is hard to re\-\-\- nevermind...","New\nline.","I like to put a little coffee in my tea---I mean---ugggh, screwed up that joke.","I like to put a little choclate in my mil---FFFFFFFFF","The cow goes \"Man, living here for free is great!\"","for i=1,100 do \n  print\"I will not use code in class\"\nend","Out of jokes. ","Blue!!!!","3good5you","In Soviet Russia, Waldo finds YOU","In capatalist America, bank robs YOU!","makeYouLaugh() --> \"Lol xD\"","\n\n","Turtles and Rectangles dimension in Soup"}--they can't control this from code anyway
+
+local args={...}
+local noSplash
+local runProg = args[2]
+if args[1] then
+  if string.find(args[1],"nosplash") then 
+    noSplash=true
+  end
+end
+ --global so easily modified
+pastCommands={}
+local tEnv = {}
+tEnv["shell"] = shell--accsess to shell
+tEnv["osStuff"] = osStuff --accsess to osStuff
+tEnv["yourEnv"] =tEnv--they can edit permissions
+setmetatable(tEnv,{ __index=getfenv() })
+--reemeber we're trying to give users 100% full
+--acsess, and not block them off to anything.
+osStuff.backColor = colors.black
+osStuff.textColor=colors.lime
+osStuff.promptColor=colors.yellow
+osStuff.commandColor=colors.blue
+function osStuff.specialPrint(text)--fancy name printing
+  for i=1,#text do
+    --get the cursor y pos
+    local x,y=term.getCursorPos()
+    if x==1 then
+      x=2
+    end
+    term.setCursorPos(x-1,y)
+    term.setBackgroundColor(osStuff.backColor)
+    term.setTextColor(osStuff.textColor)
+    local writeThis = string.sub(text,i,i)
+    if writeThis=="\n" then--new line
+      term.setBackgroundColor(osStuff.backColor)
+      print" "
+      term.setCursorPos(1,y+1)
+    else
+      write(writeThis)
+      term.setBackgroundColor(colors.white)
+      write" "
+      sleep(0)
+    end
+  end
+  term.setBackgroundColor(osStuff.backColor)
+  local _,y=term.getCursorPos()
+  term.setCursorPos(term.getCursorPos()-1,y)
+  print" "
+end
+function osStuff.int()
+  term.clear()
+  term.setCursorPos(1,1)
+  term.setBackgroundColor(osStuff.backColor)
+  term.setTextColor(osStuff.textColor)
+  term.setCursorBlink(false)
+  if math.random(1,50)==1 then 
+    osStuff.specialPrint("GLaDOS V2")
+    noSplash = false 
+    osStuff.splashes = {"Oh, how are you holding up? BECAUSE I'M A POTATO."}
+  else 
+    osStuff.specialPrint("Shell V0",1)
+  end
+  --let's select from one of our fine splashes
+  if not noSplash then
+    local whichSplash = math.random(1,#osStuff.splashes)
+    --print the splash
+    osStuff.specialPrint(osStuff.splashes[whichSplash],2)
+
+  else 
+    term.setCursorPos(1,2)
+  end
+  term.setCursorBlink(true)
+  --request password
+  if args[3]~="nopass" then 
+    shell.run"library/pswd"
+  end
+  --now they can terminate
+  os.pullEvent=ospe
+  print"Run startx to start the GUI."
+  if runProg then 
+    shell.run(runProg)
+  end 
+  while true do
+    osStuff.doMain()
+  end
+
+end
+function osStuff.doDir()
+--cursor crap
+  if shell.dir()=="" then else--not a dir not a problem
+    term.setTextColor(colors.green)
+    term.setBackgroundColor(colors.black)
+    local a = string.gsub(string.upper(shell.dir()).." ","/"," - ")
+    write(a)
+    if #a>=term.getSize()-1 then 
+      print()
+    end
+  end
+end
+function osStuff.centerWrite(text)
+  local _,y=term.getCursorPos()
+  term.setCursorPos((term.getSize()-#text)/2,y)
+  write(text)
+end
+function osStuff.centerPrint(text)
+  osStuff.centerWrite(text)
+  print()
+end
+function osStuff.giveFenv(program)
+  local f=getfenv()
+  return setfenv(program,f)
+end
+function osStuff.doMain()
+  osStuff.doDir()
+  --read input
+  term.setBackgroundColor(osStuff.backColor)
+  term.setTextColor(osStuff.textColor)
+  input = read(nil,pastCommands)
+  --add this to prev commands
+  if string.find(input,"%a") or string.find(input,"%d") then 
+    pastCommands[#pastCommands+1]=input
+  end
+  --sub the first part of the string out
+  local inFirstChar = string.sub(input,1,1)
+  if inFirstChar ~=";" and inFirstChar~=":" then
+    --top priority: make it look cool, of course!
+    local _,y=term.getCursorPos()
+    term.setCursorPos(1,y-1)
+    osStuff.doDir()
+    term.setTextColor(osStuff.commandColor)
+    --write(inFirstChar)
+    term.setTextColor(osStuff.textColor)
+    --kindly done for me:
+    --input=string.sub(input,2,#input)
+    --write(input)
+    print() --move back to normal line
+    --[[if input =="clear" then
+      local runThis = loadfile"library/newClear"
+      runThis()
+    elseif input=="wipe"then
+      local runThis=loadfile"library/wipe"
+      runThis()
+    elseif input=="settings"then
+    
+      local runThis=loadfile"library/settings"
+      runThis=osStuff.giveFenv(runThis)
+      runThis()
+    else
+      
+    end]]
+    shell.run(input)
+  else
+    --they're running a lua command
+    --first thing's first let's make it prrrddy
+    local _,y=term.getCursorPos()
+    term.setCursorPos(1,y-1)
+    osStuff.doDir()
+    term.setTextColor(osStuff.promptColor)
+    term.setTextColor(osStuff.commandColor)
+    write(inFirstChar)
+    term.setTextColor(osStuff.textColor)
+    --kindly done for me:
+    input=string.sub(input,2,#input)
+    print(input)
+    --make it into a command:
+    inputF=loadstring(input)
+    --set its envirnment
+    setfenv(inputF,tEnv)
+    --call it
+    local ok,err=pcall(inputF)
+    if not ok and err then
+      --first let's check if it's a variablef
+      local varF=loadstring("return "..input.."")
+      setfenv(varF, tEnv)
+      local var=pcall(varF)
+     -- printError("Your command had this error: \n"..err.."\nIf you want to run a program, put ; infront.")
+      --could be a variable, etc.
+      --check if it;s a table
+      if type(var)=="table" then
+        local okay,er = pcall(textutils.serialize, err)
+        if okay then--did work
+          print(er)
+        else
+          print(tostring(var))
+        end
+      else
+        print(tostring(var))
+      end
+    end
+  end
+end
+osStuff.int()
