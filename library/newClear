@@ -1,0 +1,11 @@
+local x,y=term.getSize()
+term.setCursorPos(1,19)
+print()
+paintutils.drawLine(1,19,51,19,colors.lightGray)
+term.setBackgroundColor(colors.black)
+for i=1,y do
+  term.setCursorPos(1,y)
+  print()
+  sleep(0)
+end
+term.setCursorPos(1,1)
