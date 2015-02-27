@@ -1,0 +1,42 @@
+local ok=pcall(function()
+	--get password
+	local pass
+	if fs.exists"library/pass" then
+		local f=fs.open("library/pass","r")
+		pass=f.readAll()
+		f.close()
+		if pass == "" then 
+			print"You have no password. Delete library/pass and reboot to make one."
+			return
+		end
+		for i=1,4 do
+			print("(Attempt "..tostring(i).."/4) Please enter password:")
+			local input = read"*"
+			if input == pass then 
+				return
+			end 
+		end
+		print"Out of attempts."
+		while true do coroutine.yield() end
+	else 
+		local input
+		while true do 
+			print"No password found. Please create a password, or leave blank for none:"
+			input = read()
+			print"Confirm:"
+			if read()==input then 
+				break 
+			end
+		end
+		--write 
+		local f=fs.open("library/pass","w")
+		f.writeLine(input)
+		f.close()
+		print"You can delete library/pass and reboot to change your password."
+	end
+end)
+if not ok then
+	--something went wrong(they probably terminated it. They can do that all they want, they won't get into the computer.)
+	pcall(function() print"pswd has crashed. Please reboot." end)
+	while true do coroutine.yield() end 
+end
