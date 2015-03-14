@@ -1,42 +1,111 @@
-local ok=pcall(function()
-	--get password
-	local pass
-	if fs.exists"library/pass" then
-		local f=fs.open("library/pass","r")
-		pass=f.readAll()
-		f.close()
-		if pass == "" then 
-			print"You have no password. Delete library/pass and reboot to make one."
-			return
-		end
-		for i=1,4 do
-			print("(Attempt "..tostring(i).."/4) Please enter password:")
-			local input = read"*"
-			if input == pass then 
-				return
+--temp:
+if not game then game={} function game.l(a) end end 
+
+if not osStuff then 
+	osStuff = {}
+	function osStuff.prgName(path) --ripped from osStuff
+		string.gsub(path,"/","\\")
+		local a
+		while true do 
+			a=string.find(path,"/")
+			if not a then 
+				break
 			end 
+			path = string.sub( path, a+1, #path )
+		end 
+		return path 
+	end 
+end
+
+game.l"startPSWD"
+local ok,accType,pass=pcall(function()
+	--get password
+	
+	--find accs
+	local b = fs.list"/library/acc/"
+	for i=1,#b do 
+		if b[i]=="admin" then 
+			table.remove(b,i)
+		end 
+	end 
+	local a = fs.list"/library/acc/admin"
+	--combine
+	game.l(textutils.serialize(a))---
+	game.l(textutils.serialize(b))---
+	for i,o in pairs(a) do
+		game.l("ab "..o) ---
+		table.insert(b,"admin/"..o)
+	end 
+	--debug
+	for i,o in pairs(b) do ---
+		game.l(b[i])---
+	end ---
+	local pass
+
+	if b[1] then
+		local c
+		local z = function(a) if not a then print"User does not exist!" end return a end
+		repeat
+			print"Please enter username:"
+			local usr = read()
+			for i=1,#b do 
+				if osStuff.prgName("/library/acc/"..b[i])==usr then 
+					game.l"y"---
+					c=i
+				end 
+				game.l("c "..b[i])---
+			end 
+		until z(c)
+		if c then 
+			local f = fs.open("library/acc/"..b[c],"r")
+			if f then 
+				pass=f.readAll()
+				f.close()
+			else 
+				print"Account does not exist."
+				while true do coroutine.yield() end 
+			end
+
+			if pass == "" then 
+				print"You have no password. Delete library/usr/ and reboot to make one."
+				return
+			end
+			for i=1,4 do
+				print("(Attempt "..tostring(i).."/4) Please enter password:")
+				local input = read"*"
+				if input == pass then 
+					--is type admin?
+					if string.sub(b[c],1,5) =='admin' then 
+						return "admin",pass
+					end 
+					return "guest",pass
+				end 
+			end
+			print"Out of attempts."
+			while true do coroutine.yield() end
 		end
-		print"Out of attempts."
-		while true do coroutine.yield() end
 	else 
 		local input
 		while true do 
 			print"No password found. Please create a password, or leave blank for none:"
 			input = read()
 			print"Confirm:"
-			if read()==input then 
+			if read() == input then 
 				break 
 			end
 		end
 		--write 
-		local f=fs.open("library/pass","w")
+		local f=fs.open("library/acc/admin/root","w")
 		f.writeLine(input)
 		f.close()
-		print"You can delete library/pass and reboot to change your password."
+		print('Your user name is "root" and password is "'..input..'". "root" is an administrative account, and its password can be found @ /library/acc/admin/ . You will need to login to an administrative account and retype your password to view this.')
+		return "admin",input
 	end
 end)
 if not ok then
 	--something went wrong(they probably terminated it. They can do that all they want, they won't get into the computer.)
-	pcall(function() print"pswd has crashed. Please reboot." end)
+	pcall(function() print"pswd has crashed. Please reboot." print(ok,accType) end)
 	while true do coroutine.yield() end 
 end
+--temp
+return accType,pass
