@@ -1,0 +1,16 @@
+local args = {...}
+local dirs = fs.list(shell.dir())
+local files,folders = {},{}
+for i,o in pairs(dirs) do
+  if not(string.sub(o,1,1) =="." and args[1]~="all") then 
+    if fs.isDir(o) then 
+      table.insert(folders,o)
+    else 
+      table.insert(files,o)
+    end 
+  end 
+end
+table.sort(files)
+table.sort(folders)
+textutils.pagedTabulate(osStuff.dirColor, folders, osStuff.textColor,files)
+
