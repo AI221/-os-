@@ -1,7 +1,8 @@
 print"One moment please..."
 --capture shellAPI
 shellAPI = shell
-if window or multishell then 
+osStuff = {}
+if multishell then 
   sleep(0)
   --tlco
   local a = _G.printError
@@ -10,31 +11,34 @@ if window or multishell then
     --no multishell
     term.redirect(term.native())
     multishell = nil
-    _G.window = nil
-    local err = loadfile("run",theEnv)
+    --kill shell's only reference to multishell
+    shellAPI.openTab = nil
+    shellAPI.switchTab =nil
+    local err = loadfile("/library/run",theEnv)
+    local env = setmetatable({}, {__index=_G})
+    env["shell"] = shellAPI
+    env["osStuff"] = osStuff
+    if type(err) == "function" then
+      setfenv(err, env)
+      err()
+    end
+    print(err or "")
+    print"Shell has crashed. You will be allowed CraftOS access after you input your password."
+    os.run({},"/library/pswd")
+    local err = loadfile("rom/programs/shell",theEnv)
     local env = setmetatable({}, {__index=_G})
     env["shell"] = shellAPI
     if type(err) == "function" then
       setfenv(err, env)
-      err()
-    else
-      print(err)
-      print"Press any key to continue. You will be allowed CraftOS access after you input your password."
-      os.pullEvent"key"
-      os.run({},"/library/pswd")
-      local err = loadfile("rom/programs/shell",theEnv)
-      local env = setmetatable({}, {__index=_G})
-      env["shell"] = shellAPI
-      if type(err) == "function" then
-        setfenv(err, env)
-        err()
-      else
-        print"Shell refused to execute. Your next inputs will be ran as a program, including args:"
-        while true do shell.run(read()) end
-      end
+      pcall(err)
     end
+    print"Shell refused to execute or crashed. Your next inputs will be ran as a program, including args:"
+    pcall( function() while true do shell.run(read()) end end )
+    print"Just insert a floppy with a startup program. You've gone through 2-3 failsafes and crashed them all."
+    sleep(10)
   end
+  print"Injection Finializing..."
   os.queueEvent"terminate"--cause the shell to terminate
 else 
-  os.run({},"/run") --their cc version does not have multshell
+  os.run({},"/library/run") --their cc version does not have multshell
 end
