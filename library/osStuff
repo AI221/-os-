@@ -87,7 +87,7 @@ function osStuff.int()
 		noSplash = false 
 		osStuff.splashes={"Badwolf."}
 	else 
-		osStuff.specialPrint"[os] V0"
+		osStuff.specialPrint"[os] V0.1"
 	end
 	--let's select from one of our fine splashes
 	if not noSplash then
