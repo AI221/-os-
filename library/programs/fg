@@ -1,0 +1,5 @@
+--newshell version of fg:
+if not osStuff.xStarted then 
+  print"fg requires you to start the GUI!"
+  return 
+end
