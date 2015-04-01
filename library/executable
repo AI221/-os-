@@ -1,4 +1,4 @@
---    ¥
+--¥
 --[[
 ARgS:
 1 - "nosplash" for no splash
@@ -9,28 +9,29 @@ ARgS:
 --config:
 
 --aliases
-shell.setAlias("clear","/library/newClear")
-shell.setAlias("wipe","/library/wipe")
-shell.setAlias("settings","/library/settings")
 shell.setAlias("lock","/library/pswd")
-shell.setAlias("edit","/library/nevardon")
 shell.setAlias("oldEdit","/rom/programs/edit")
-shell.setAlias("bg","/library/bg")
-shell.setAlias("fg","/library/fg")
-shell.setAlias("dir","/library/dir")
-shell.setAlias("list","/library/dir")
-shell.setAlias("ls","/library/dir")
-shell.setAlias("clr","/library/newClear")
+shell.setAlias("list","/library/programs/dir")
+shell.setAlias("ls","/library/programs/dir")
+local prs = fs.list"/library/programs/"
+for i=1,#prs do 
+  shell.setAlias(prs[i],"/library/programs/"..prs[i])
+end 
+
+
+--DEBUG:
+shell.setAlias("a","/library/osStuff")
 --force shell.programs to include our aliases
 local a = shell.programs
 function shell.programs(...)
   local b = a(...)
-  b[#b+1] = "wipe"
-  b[#b+1] = "settings"
   b[#b+1] = "lock"
   b[#b+1] = "oldEdit"
   b[#b+1] = "startx"
   b[#b+1] = "console"
+  for i=1,#prs do 
+    b[#b+1] = prs[i]
+  end 
   return b
 end
 local args={...}
@@ -38,6 +39,90 @@ local pastCommands={}
 local tEnv = {}
 tEnv["shell"] = shell--accsess to shell
 tEnv["osStuff"] = osStuff --accsess to osStuffS
+--api to tell if the program has cleared the screen
+local didClear
+local oldClear = term.clear 
+function term.clear() 
+  oldClear()
+  didClear = true 
+end 
+function osStuff.didClear() return didClear end 
+function osStuff.resetClear() didClear = false end 
+local accType,accPass
+local open = fs.open 
+function osStuff.int()
+  term.setBackgroundColor(osStuff.backColor or 1)
+  term.setTextColor(osStuff.textColor or 1)
+  term.clear()
+  term.setCursorPos(1,1)
+  term.setCursorBlink(false)
+  local r = math.random(1,150)--1/50 chance to get easter egg
+  if r==1 then 
+    osStuff.specialPrint"GLaDOS V2"
+    noSplash = false 
+    osStuff.splashes = {"Oh, how are you holding up? BECAUSE I'M A POTATO."}
+  elseif r==2 then 
+    osStuff.specialPrint"Illuminati Secrets Browser V3"
+    noSplash = false 
+    osStuff.splashes = {"Yes, blame bush.\nIt makes our life MUCH easier."}
+  elseif r==3 then 
+    osStuff.specialPrint"Badwolf VBadwolf.badwolf"
+    noSplash = false 
+    osStuff.splashes={"Badwolf."}
+  else 
+    osStuff.specialPrint"[os] V0.3"
+  end
+  --let's select from one of our fine splashes
+  if args[1] ~="nosplash" then
+    local whichSplash = math.random(1,#osStuff.splashes)
+    --print the splash
+    osStuff.specialPrint(osStuff.splashes[whichSplash])
+
+  else 
+    term.setCursorPos(1,2)
+  end
+  term.setCursorBlink(true)
+  --request password
+  if args[3]~="nopass" then 
+    local a = loadfile"library/pswd"
+    local ok,err,pss=pcall(a,open)--pswd is allowed full fs access
+    accType = err
+    accPass = pss
+    if not ok then
+      while true do 
+        coroutine.yield() 
+      end 
+    end 
+  end
+  --display MOTD
+  local a = fs.open("/library/motd","r")
+  local f 
+  if a then 
+    f = a.readAll() 
+    a.close() 
+  end 
+  print(f or "")
+  --now they can terminate
+  restore() 
+  restore = nil 
+
+  if r==3 then 
+    print"Badwolf badwolf to badwolf the badwolf."
+  elseif r==2 then 
+    print"Type Illuminati to start the secrets browser."
+  elseif r==1 then 
+    print"Type GLaDOS to start GLaDOS."
+  else
+    print"Run startx to start the GUI."
+  end 
+  
+  if runProg then 
+    pcall(function() shell.run(runProg) end)
+  end 
+  while true do 
+    osStuff.doMain()
+  end 
+end
 function osStuff.doMain()
   osStuff.doDir()
   --read input
@@ -85,8 +170,15 @@ function osStuff.doMain()
         print"The GUI is not supported on basic computers."
       end
     else 
-      local ok,err=pcall(function() shell.run(input) end)
+      osStuff.resetClear()
+      local ok,err=pcall(function() local a = term.current() shell.run(input) term.redirect(a) end)
+      if osStuff.didClear() then 
+        term.setBackgroundColor(osStuff.backColor)
+        term.clear()
+        term.setCursorPos(1,1)
+      end 
       if not ok then 
+        term.setCursorPos(1,1)
         print('[os MSG] - There was an error running the program "'..input..'". The error was: '..err)
       end 
       -- Reset background colors: 
@@ -150,6 +242,448 @@ function osStuff.doMain()
     end
   end
 end
+function osStuff.getDir(program)
+  local remove = #fs.getName(program)
+  return string.sub(program,1,#program-remove)
+end 
+--meta stuff, based of off lyqyd's code @ http://www.computercraft.info/forums2/index.php?/topic/18646-
+--modifications to standard found @ http://jacksonmcneill.ddns.net/[os]_meta
+-- Create local references to fs functions before they are modified
+local accountType = "app" --Changing this can configure what apps are treated as. Treated as "app" by default.
+-- Create local references to meta functions, as these could be changed by the user:
+
+-- Create local references to overwritten fs functions
+local isReadOnly = fs.isReadOnly
+--Note: The open reference is above int, because it needs it
+local delete = fs.delete
+local copy = fs.copy 
+local move = fs.move
+local isDir = fs.isDir 
+local combine = fs.combine
+local exists = fs.exists
+local list = fs.list 
+-- I misunderstood this shell function ( :P ) so here's what I thought it did. I made a local reference anyway.
+local function resolve(a)
+  return fs.combine(a,"")
+end 
+local getDir = osStuff.getDir
+--Create a local reference to sleep
+local sleep = sleep 
+
+
+local function parseMeta(metaPath) -- Function by Lyqyd
+  if exists(metaPath) then
+    local handle = open(metaPath, "r")
+    if handle then
+      local data = {}
+      local fn, err = loadstring(handle.readAll())
+      handle.close()
+      if fn then
+        setfenv(fn, data)
+        local success, err = pcall(fn)
+        if success then
+          return data
+        else
+          return nil, err
+        end
+      else
+        return nil, err
+      end
+    else
+      return nil, "could not read metadata"
+    end
+  else
+    return nil, "no metadata found"
+  end
+end
+function osStuff.getMetadataForFile(path) -- Function by lqyqd
+  return parseMeta(combine(".meta", path))
+end
+local getFile = osStuff.getMetadataForFile
+local function getMetadataForFolder(folderPath, metadata) -- Function by lqyyd and modified by Jackson McNeill
+  if not metadata then metadata = {} end
+  for _, file in ipairs(list(folderPath)) do
+    local path = combine(folderPath, file)
+    if isDir(path) then
+      getMetadataForFolder(path, metadata)
+    else
+      --print('a '..path)
+      metadata[path] = getFile(path)
+    end
+  end
+  return metadata
+end
+osStuff.getMetadataForFolder=getMetadataForFolder
+function osStuff.getAllMetadata() -- Function by Lyqyd
+  if exists(".meta") and isDir(".meta") then
+    return getMetadataForFolder(".meta")
+  else
+    return nil, "no metadata available"
+  end
+end
+function osStuff.getLowestFolderPerms(folder,type) -- slightly copied from readonly
+  local entire = getMetadataForFolder(folder)
+  if not entire then return end 
+  local result = 2
+  for fileN,a in pairs(entire) do -- a is metadata
+   -- print(fileN)print(a)
+    local user
+    --print(textutils.serialize(a))
+    if a then 
+      if a.permissions then 
+        --print(a.permissions[type])
+        user = a.permissions[type] or 2 
+      end 
+    end 
+    user = user or 2 
+    result = math.min(result,user) -- they both need the same priviliges or the other one is void 
+  end
+  return result 
+end 
+local getAllMeta = osStuff.getAllMetadata
+local getMetaForFile = osStuff.getMetadataForFile -- We need a local reference so they cannot modify it
+local lowestPerms = osStuff.getLowestFolderPerms
+local function writeMeta(file,name,auth,ftype,times,perm,otherStuff)
+  if string.sub(resolve(file),1,6)==".meta/" then
+    return false 
+  end 
+  local a = getMetaForFile(file)
+  if isDir(file) then 
+    return writeMeta(file.."/osFolderMetadata",name,auth,ftype,time,perm,otherStuff)
+  end 
+  if not a then --creating new 
+    if game.inputCheck({file,name,auth,ftype,times,perm,otherStuff},{{"string"},{"string",},{"string",},{"string",},{"table",},{"table"},{"table","nil"}},"osStuff.writeMeta(internal)(new)") then 
+      return false 
+    end 
+    a={}
+    a.name = name
+    a.author = auth
+    a.type = ftype 
+    a.timestamp = times 
+    a.permissions = perm
+  else --overwriting old
+    if game.inputCheck({file,name,auth,ftype,times,perm,otherStuff},{{"string"},{"string","nil"},{"string","nil"},{"string","nil"},{"table","nil"},{"table","nil"},{"table","nil"}},"osStuff.writeMeta(internal)(changing)") then 
+      return false 
+    end
+    a.name = name or a.name
+    a.author = auth or a.author
+    a.type = ftype or a.type 
+    
+    times = times or {}
+    times.accessed = times.accessed or (a.timestamp or {}).accessed
+    times.modified = times.modified or (a.timestamp or {}).modified
+    times.created = times.created or (a.timestamp or {}).created
+    a.timestamp = times or a.timestamp 
+    perm = perm or {}
+    perm.admin = perm.admin or (a.permissions or {}).admin
+    perm.app = perm.app or (a.permissions or {}).app
+    perm.guest = perm.guest or (a.permissions or {}).guest
+    a.permissions = perm or a.permissions
+  end 
+  -- Are they an admin? 
+
+  --write it
+  local c =""
+  for i,o in pairs(a) do 
+    if type(o)=="string" then 
+      c=c..i.." = '"..o.."'\n"
+    elseif type(o)=="table" then
+      c=c..i.." = "..textutils.serialize(o).."\n"
+    else 
+      return game.e("Unexpected variable type while piecing together string: "..type(o))
+    end 
+  end 
+  --game.l(c) ----debug
+  c=c.."\n"..(otherStuff or "")
+  local b = open(combine(".meta", file),"w")
+  if b then 
+    b.write(c)
+    b.close()
+  else 
+    return game.e("Could not open metadata for "..file.."!")
+  end 
+
+end 
+function osStuff.writeMeta(file,name,auth,ftype,times,perm,pass)
+  if pass == accPass then 
+    -- Do they have access?
+    local b = getMetaForFile(file)
+    if b then 
+      if b.permissions then 
+        if b.permissions["admin"] then --if admin doesn't exist, let them slide
+          if b.permissions[accType] ~= 2 and accType ~= "admin" then
+            return game.e"You do not have permission to access this file!"
+          end 
+        end 
+      end
+    end 
+    if accType ~="admin" then 
+      permissions = b.permissions or {}
+      permissions.admin = 2 
+      permissions.guest = 2
+      --they are allowed to configure app permissions
+    end 
+    writeMeta(file,name,auth,ftype,times,perm)
+    return true
+  end 
+  sleep(1) -- This makes it harder to brute force the password
+  return false
+
+end 
+
+
+function osStuff.appMeta(file,name,auth,ftype,times)
+  local a = getMetaForFile(file)
+  if not a then --creating new 
+    if game.inputCheck({file,name,auth,ftype,times},{{"string"},{"string",},{"string",},{"string",},{"table",}},"appMeta(new)") then 
+      return false 
+    end
+    local permissions = {admin = 2, guest = 2, apps = 2}
+  else 
+    if game.inputCheck({file,name,auth,ftype,times,perm},{{"string"},{"string","nil"},{"string","nil"},{"string","nil"},{"table","nil"},{"table","nil"}},"appMeta(changing)") then 
+     --game.l"no"
+      return false 
+    end
+    -- Do they even have access to this file? 
+    local b = getMetaForFile(file)
+    if b.permissions.app ~= 2 and b.permissions[accType] ~= 2 then  -- Not only do apps need perms to this, but the user using the app does too.
+      if b.permissions.app or b.permissions[accType] then 
+        return game.e"You do not have permission to access this file!"
+      end 
+    end 
+  end 
+  writeMeta(file,name,auth,ftype,permissions,times)
+  return true 
+end 
+
+
+
+
+
+
+
+
+--]]
+
+
+
+function fs.isReadOnly(file)
+  if fs.isDir(file) then 
+    local level = math.min( lowestPerms(file,accType) , lowestPerms(file,accountType) )
+    if level == 1 then 
+      return true 
+    elseif level == 0 then 
+      return "noAccess"
+    end 
+  end 
+  if string.sub(resolve(file),1,6) == ".meta/"  then 
+    return true 
+  end 
+  local a = getFile(file)
+  local user,app
+  if a then 
+    if a.permissions then 
+      user = a.permissions[accType] or 2 
+      app = a.permissions[accountType] or 2 
+    end 
+  end 
+  user = user or 2 
+  app = app or 2 
+  local result = math.min(user,app) -- they both need the same priviliges or the other one is void 
+  if result == 1 then 
+    return true 
+  elseif result == 0 then 
+    return "noAccess"
+  end 
+  return isReadOnly(file )
+end 
+function osStuff.sudoReadOnly(file)
+  if accType ~= "admin" then 
+    if string.sub(resolve(file),1,6) == ".meta/"  then 
+      return true 
+    end
+    local a = getFile(file)
+    if a then 
+      if a.permissions then 
+        if a.permissions[accType] == 2 then 
+          return
+        elseif a.permissions[accType]== 1 then 
+          return true 
+        elseif a.permissions[accType] == 0 then 
+          return "noAccess" 
+        end 
+      end 
+    end 
+  end 
+end 
+
+--old snippit from readOnly
+--[[
+      if a.permissions[accountType] then --apps
+        if a.permissions[accType] == 1 then 
+          if a.permissions[accountType] == 0 then --apps
+            return "noAccess" -- Allows programs to support having no access, but unsupported programs will at least not try to write to the files
+          elseif a.permissions[accountType]==1 then --aps
+            return true 
+          end 
+        elseif a.permissions[accType]==0 then 
+          return "noAccess"
+        end 
+        if a.permissions[accountType] == 1 then --apps
+          return true 
+        elseif a.permissions[accountType] == 0 then --apps
+          return "noAccess" -- Allows programs to support having no access, but unsupported programs will at least not try to write to the files
+        end 
+      end 
+    end 
+  end --]]
+local function n() return "Permission Denied"  end 
+local function e() error "Permission Denied" end
+local function t() end
+local readOnly = fs.isReadOnly -- We have to create a local reference, or this could be easily edited.
+function fs.open(file,mode)
+  local a = readOnly(file) -- check meta/native read-only
+  --print(a)
+  if mode == "w" or mode == "a" then 
+    if a then -- we'll need to return something special
+      return { 
+        write = e,
+        writeLine = e,
+        flush = e, 
+        close = t,
+      }
+    else 
+      if open(file,"r") then 
+        writeMeta(file,nil,nil,nil,{modified = os.day()..", "..textutils.formatTime(os.time(),true)})
+      else 
+        writeMeta(file,nil,nil,nil,{created = os.day()..", "..textutils.formatTime(os.time(),true)})
+      end
+      return open(file,mode)
+    end
+  elseif mode == "r" then 
+    if a == "noAccess" then 
+      local readIt
+      local rtn = {
+        readLine = function() if not readIt then readIt = true return"Permission Denied"  end end, -- They will end up displaying this, most likely
+        readAll = n,
+        close = t,
+      } 
+      return rtn
+    else 
+      writeMeta(file,nil,nil,nil,{accessed = os.day()..", "..textutils.formatTime(os.time(),true)}) -- If they overwrite this, they will achieve nothing.
+      return open(file,mode)
+    end 
+  elseif mode =="rb" then 
+    if a == "noAccess" then 
+      return {
+        read = n, -- They will end up displaying this, most likely
+        close = t,
+      } 
+    else 
+      return open(file,mode)
+    end 
+  elseif mode == "wb" or mode == "ab" then 
+    if a then 
+      return {
+        readLine = t,
+        close = t,
+        flush = t,
+      } 
+    else 
+      return open(file,mode)
+    end 
+  end 
+end 
+function fs.copy(a,b)
+  local c = readOnly(a) 
+  local d = readOnly(b) 
+  if d  == "noAccess" or d then
+    e()
+    return -- Just in case
+  elseif c == "noAccess" then 
+    e() 
+    return -- Just in case
+  end -- Copy the metadata
+  copy( fs.combine( ".meta" , a ) , fs.combine( ".meta", b ) )
+  return copy(a,b)
+end
+function fs.move(a,b)-- based of copy
+  local c = readOnly(a) 
+  local d = readOnly(b) 
+  if d then
+    e()
+    return -- Just in case
+  elseif c then 
+    e() 
+    return -- Just in case
+  end 
+  --move the metadata
+  move( fs.combine( ".meta" , a ) , fs.combine( ".meta", b ) )
+  return move(a,b)
+end
+function fs.delete(a)
+  local b = readOnly(a)
+  if b then 
+    e() 
+    return -- Just in case
+  end 
+  --delete metadata
+  delete( fs.combine( ".meta" , a ) )
+  return delete(a) 
+end
+--Accessing files with current accounts permission: 
+function osStuff.open(file,mode,pass)
+  if pass == accPass then 
+    -- Do they have access?
+    local b = getMetaForFile(file)
+    if b then 
+      if b.permissions then 
+        if b.permissions[accType] then --we let them off if there's no perms set
+          if b.permissions[accType] ~= 2 then 
+            if not ( mode ~="a" and mode ~="w" and b.permissions[accType] == 1 ) then 
+              return false,game.e"You do not have permission to access this file!"
+            end 
+          end
+        end 
+      end 
+    end  
+    --Are they trying to access metadata as a non-admin?
+    if accType ~= "admin" and string.sub(resolve(file),1,6) == ".meta/"  then 
+      sleep(1) -- This makes it harder to brute force the password
+      return "w"
+    end 
+    return open(file,mode)
+  end 
+  sleep(1) -- Same as first sleep
+  return "w"
+end
+-- A c&p'd function
+function osStuff.delete(file,pass)
+  if pass == accPass then 
+    -- Do they have access?
+    local b = getMetaForFile(file)
+    if b then 
+      if b.permissions then 
+        if b.permissions.admin then --we let them off if there's no admin perms set
+          if b.permissions[accType] ~= 2 then 
+            if not ( mode ~="a" and mode ~="w" and b.permissions[accType] == 1 ) then 
+              return false,game.e"You do not have permission to access this file!"
+            end 
+          end
+        end 
+      end 
+    end  
+    --Are they trying to access metadata as a non-admin?
+    if accType ~= "admin" and string.sub(resolve(file),1,6) == ".meta/"  then 
+      sleep(1) -- This makes it harder to brute force the password
+      return "w"
+    end 
+    return delete(file)
+  end 
+  sleep(1) --Same as first sleep
+  return "w"
+end
+
 if args[4]~="stop" then 
   osStuff.int()
 end
