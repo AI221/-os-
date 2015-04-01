@@ -1,0 +1,110 @@
+--By Jackson McNeill, with inspiration from the Unix command
+local args = {...}
+if not args[1] then 
+  print(osStuff.g("statUsage"))
+  return
+end 
+args[1]= shell.dir().."/"..args[1]
+if not fs.exists(args[1]) then 
+	printError"File does not exist!"
+	return 
+end 
+
+local meta = osStuff.getMetadataForFile(args[1])
+if not meta then 
+  printError"No metadata found!"
+  return 
+end 
+local _d = meta.timestamp.accessed
+local aday = "nil"
+local atime = "nil"
+if _d then 
+  aday = string.sub(_d,1,string.find(_d,",")-1)
+  atime = string.sub(_d,string.find(_d,",")+1,#_d)
+end 
+_d = meta.timestamp.modified
+local mday = "nil"
+local mtime = "nil"
+if _d then 
+  mday = string.sub(_d,1,string.find(_d,",")-1)
+  mtime = string.sub(_d,string.find(_d,",")+1,#_d)
+end 
+_d = meta.timestamp.created
+local cday = "nil"
+local ctime = "nil"
+if _d then 
+  cday = string.sub(_d,1,string.find(_d,",")-1)
+  ctime = string.sub(_d,string.find(_d,",")+1,#_d)
+end 
+local function nWrite(t)
+	term.setTextColor(osStuff.textColor)
+	write(t)
+end 
+local function tWrite(t)
+	term.setTextColor(osStuff.commandColor)
+	print(t)
+end 
+local function mWrite(t)
+	term.setTextColor(osStuff.commandColor)
+	write(t)
+end 
+
+
+local function printPerms(var,value)
+	local tValue
+	if value == 0 then 
+		tValue = "No access"
+	elseif value == 1 then 
+		tValue = "Read-only"
+	elseif value == 2 then 
+		tValue = "Read & Write"
+	end 
+	nWrite(var..": ")
+	tWrite(tValue)
+end 
+
+nWrite"File: "
+tWrite(args[1])
+nWrite"Name: "
+tWrite(meta.name or "nil")
+nWrite"Author: "
+tWrite(meta.author or "nil")
+nWrite"Type: "
+tWrite(meta.type or "nil")
+nWrite"Created: Day: "
+mWrite(cday)
+nWrite" Time: "
+tWrite(ctime)
+nWrite"Last mofified: Day: "
+mWrite(mday)
+nWrite" Time: "
+tWrite(mtime)
+nWrite"Last accessed: Day: "
+mWrite(aday)
+nWrite" Time: "
+tWrite(atime)
+term.setTextColor(osStuff.dirColor)
+print"Permissions:"
+local prms
+for i,o in pairs((meta.permissions or {})) do 
+	prms = true 
+	--print(i)
+	printPerms(i,o)
+end 
+if prms then 
+	if not meta.permissions.admin then 
+		printPerms("admin",2)
+	end 
+	if not meta.permissions.guest then 
+		printPerms("guest",2)
+	end 
+	if not meta.permissions.app then 
+		printPerms("app",2)
+	end 
+else 
+	printPerms("everyone",2)
+end 
+
+
+
+
