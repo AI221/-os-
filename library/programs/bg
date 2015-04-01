@@ -1,0 +1,5 @@
+--Newshell version of bg
+if not osStuff.xStarted then 
+  print"bg requires you to start the GUI!"
+  return 
+end
