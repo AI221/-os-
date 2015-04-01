@@ -1,0 +1,12 @@
+timestamp = {
+  modified = "1337, 13:37",
+  created = "1337, 13:37",
+}
+permissions = {
+  guest = 1,
+  app = 1,
+  admin = 2,
+}
+author = 'GopherAtl'
+type = 'GAME API'
+
