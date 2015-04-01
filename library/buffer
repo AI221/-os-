@@ -1,0 +1,302 @@
+local function clearLine(self,l) 
+	l= l or 1 
+	local white = ""
+	for i=1,self.getSize() do 
+		white = white.." "
+	end 
+	local x,y = term.getCursorPos()
+	--term.setBackgroundColor(colors.black)
+	term.setCursorPos(1,l)
+	self.t.write(white)
+	term.setCursorPos(x,y+1)
+end 
+
+--CONFIG:
+local lazy = false
+--[[?:
+lazy is weather or not write will precalculate string replacement. If you're blitting a lot, turn this off. If you're using mostly
+active buffers, turn this on. This will:
+Speed up writing
+Slows down bliting(only happens when pulling up a previously off-screen application)
+Eat up more memory(a decent bit--this will keep lazilly adding stuff to a table rather than calculating it.)
+If you're bliting a lot, you probably want to set it to false
+
+Default value: false
+
+]]
+--[[A NOTE ON EXESSIVE OP COUNT INCRECIMENT:
+Due to the way Lua works, if you get a rediculously high number(like, if you left something running without ever de-foucusing and re-foucusing it for several months), this script WILL break.
+That said, if you ever get a legitiment case of this happening, let me know, so I can congratulate you on your lack of a life.
+]]
+local function yield()
+	os.queueEvent"bufferYield"
+	os.pullEvent"bufferYield"
+end 
+local function clearRealdisp(self)
+	for i=1,self.sizey do 
+		game.l("wiope "..i+self.pY)
+		self.t.clearLine(i+self.pY)
+	end 
+end
+--[[ idk wtf this is, but I'm afriad to delete it ._.
+if ((b[y] or {})[x] or {}).bg then 
+		term.setBackgroundColor(b[y][x].bg)
+	end 
+	if ((b[y] or {})[x] or {}).tx then 
+		term.setTextColor(b[y][x].tx)
+	end ]]
+function newBuf(w,h)
+	local a,b = term.getSize()
+	w,h = (w or a),(h or b)
+	local self = {}
+	function self.getSize()
+		return self.sizex,self.sizey 
+	end 
+	function self.resize(x,y) 
+		if type(x)~="number" or type(y)~="number"then 
+			return error"[buffer][resize] - Expected number, number"
+		end
+		self.sizex,self.sizey = x,y 
+		self.blit()
+	end 
+	function self.setCursorPos(x,y) 
+		if type(x)~="number" or type(y)~="number"then 
+			return error"[buffer][setCursorPos] - Expected number, number"
+		end 
+		self.x,self.y=x,y 
+		if self.isActive then 
+			self.t.setCursorPos(x+self.pX,y+self.pY)
+		end 
+	end 
+	function self.getCursorPos()
+		return self.x,self.y
+	end 
+	function self.setBackgroundColor(color)
+		self.bg = color 
+		if self.isActive then 
+			self.t.setBackgroundColor(color) 
+		end 
+	end 
+	function self.setTextColor(color) 
+		self.tc = color 
+		if self.isActive then 
+			self.t.setTextColor(color)
+		end 
+	end 
+	function self.setCursorBlink(a)
+		self.cursorBlink = a 
+		if self.isActive then 
+			self.t.setCursorBlink(a)
+		end
+	end 
+	function self.scroll(ammount)
+		game.l"scroll"
+		for l=1,ammount do 
+			--game.l("s "..l)-----------------------------------------------------
+			for i=2,table.maxn(self)+1 do 
+				--game.l("w "..i.."n "..i-1)-----------------------------------------------------
+				self[i-1] = self[i]
+			end 
+			
+		end 
+		if self.isActive then 
+			--clear the actual term:
+			for i=1,self.sizey do --table.maxn(self) do 
+				--self[i]={}
+				clearLine(self,i)
+			end 
+			self.setCursorPos(1,19)
+			--[[if self.isActive then 
+				self.t.scroll(ammount)
+			end ]]--reason: caused the ENTIRE term to scroll, not just our buffer,
+			--we're going to have to blit it 
+			self.blit()
+			self.setCursorPos(1,19)
+		end 
+	end 
+	function self.current() 
+		return self 
+	end 
+	function self.makeActive(pX,pY)
+		self.isActive,self.pX,self.pY = true,pX-1 or 1,pY-1 or 1
+	end 
+	function self.makeInactive() 
+		self.isActive = false
+	end 
+	self.setTextColour = self.setTextColor 
+	self.setBackgroundColour = self.setBackgroundColor
+	function self.isColor(color)
+		return self.t.isColor(color) 
+	end 
+
+
+	self.isColour = self.isColor
+	function self.write(txt)
+		if type(txt)~="string" then 
+			txt = tostring(txt)
+		end 
+		game.l"write"
+		--yield()-------------------------------------------------------------------
+		--self.t.write"hi"-------------------------------------------------------------------
+		if self.lazy then 
+			self[self.y] = self[self.y] or {}
+			self[self.y][self.x] = self[self.y][self.x] or {}
+			self[self.y][self.x][self.opCount] = {}
+			--self[self.y][self.x][self.opCount].t = p
+			self[self.y][self.x][self.opCount].bg = self.bg 
+			self[self.y][self.x][self.opCount].tc = self.tc
+			self[self.y][self.x][self.opCount].txt = txt 
+			self.opCount = self.opCount+1
+		else 
+			--self.t.write"l"-------------------------------------------------------------------
+			local oldTxt,oldbg,oldtc
+			if (self[self.y] or {})[self.x] then 
+				oldTxt,oldbg,oldtc=self[self.y][self.x].txt,self[self.y][self.x].bg,self[self.y][self.x].tc 
+			end 
+			oldTxt = nil
+			--game.l"old"-------------------------------------------------------------------
+			--self.t.write(self)
+			self[self.y] = self[self.y] or {}
+			--game.l"1"--------------------------------------------------------------------------------------------------------------------------------------
+			self[self.y][self.x] = self[self.y][self.x] or {}
+			--self.t.write"2"---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+			self[self.y][self.x].txt = txt 
+			--self.t.write"3"----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+			self[self.y][self.x].bg = self.bg 
+			--game.l"4"-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+			self[self.y][self.x].tc = self.tc
+			
+			--game.l"str"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+			local left = string.sub(oldTxt or "",#txt,#(oldTxt or ""))
+			--game.l"man"-------------------------------------------------------------------
+			if #left>1 then 
+				--game.l"left"
+				--self.t.write("     "..self.y)-------------------------------------------------------------------
+				--self.t.write("    "..self.x+#txt)-------------------------------------------------------------------
+				--self.t.write("    "..left)-------------------------------------------------------------------
+				self[self.y] = self[self.y] or {}
+				self[self.y][self.x+#txt] = self[self.y][self.x+#txt] or {}
+
+				self[self.y][self.x+#txt].txt = left
+				--game.l"left1"
+				self[self.y][self.x+#txt].bg = oldbg
+				self[self.y][self.x+#txt].tc = oldtc 
+			end 
+			--clear anything in our path:
+			for i=self.x+1,self.x+#txt do 
+				self[self.y][i] = nil 
+			end 
+			self.x = self.x+#txt--increase x count 
+		end 
+		--game.l"bye"-------------------------------------------------------------------
+		if self.isActive then 
+			--game.l"a"-------------------------------------------------------------------
+			--self.t.setCursorPos(self.x+self.pX,self.y+self.pY) if the buffer is active, this is not necisary
+			--game.l"m"-------------------------------------------------------------------
+			--self.t.setBackgroundColor(((self[y] or {})[x] or {}).bg) -- The buffer is active, meaning it should already be set to its own colors
+			--self.t.setTextColor((self[y] or {})[x] or {}).tc)
+			self.t.write(txt)
+		end 
+		--[[game.l"{"
+		for i=1,#self do 
+			if self[i] then 
+				game.l(textutils.serialize(self[i]))
+			end 
+		end 
+		game.l"}"]]-----------------------------------------
+	end 
+	function self.blit(x,y)  -- NOTE: Code normal buffer system firs
+		--game.l"blit"
+		--clear the screen
+		for i=1,table.maxn(self) do 
+			game.l("writy "..i+self.pY)
+			self.t.clearLine(i+self.pY)
+		end
+		x,y=x or self.lastX, y or self.lastY
+		self.lastX,self.lastY = x,y 
+		x,y=x-1,y-1
+		if self.lazy then 
+			--group operations by opnum
+			local ops = {}
+			local where = {}
+			for i=1,table.maxn(self) do 
+				ops[i] = op[i] or {}
+				where[i]=where[i] or {}
+				if self[i] then 
+					for o=1,table.maxn(self[i]) do 
+						if #ops[i] == 1 then 
+							ops[i][1] = self[i][o].opN 
+							where[i][1] = o
+						else 
+							for p=1,#ops[i] do 
+								if ops[i][p] > self[i][o].opN then 
+									table.insert(ops[i],p,self[i][o].opN)
+									table.insert(where[i],p,o)
+								end 
+							end 
+						end 
+					end 
+				end 
+			end 
+			for i=1,#ops do 
+				for o=1,#ops[i] do 
+					term.setBackgroundColor(self[i][where.o].bg)
+					term.setTextColor(self[i][where.o].tc)
+					self.t.write(self[i][where.o].txt) 
+				end 
+			end 
+		else 
+			for i=1+y,table.maxn(self) do 
+				if self[i] then
+					for o=1+x,table.maxn(self[i]) do 
+						--game.l("m Y "..i.." x "..o)-----------------------------------------------------
+						if self[i][o] then 
+							term.setCursorPos(o,i)
+							term.setBackgroundColor(self[i][o].bg)
+							term.setTextColor(self[i][o].tc)
+							self.t.write(self[i][o].txt) 
+							--game.l("ye Y "..i.." x "..o)-----------------------------------------------------
+						end 
+					end 
+				end 
+			end 
+		end 
+	end
+	function self.clear()
+		for i=1,self.sizey do --table.maxn(self) do 
+			--self[i]={}
+			term.clearLine(i)
+		end 
+		--[[if self.isActive then 
+			--clearRealdisp(self)
+			for i=1,self.sizey do 
+				game.l("wiope "..i+self.pY)
+				self.t.clearLine(i+self.pY)
+			end 
+		end ]]
+	end 
+	function self.clearLine() 
+		local l = self.getCursorPos()
+		self[l]={}
+		if self.isActive then 
+			self.t.clearLine(l+self.pY)
+		end
+	end
+   local buffer=self
+   --buffer vars 
+   self.opCount = 1
+   self.cursorBlink = true
+   --set bg colors 
+
+   self.bg = colors.black 
+   self.tc = colors.white
+   self.t = term.current()
+   self.y = 1 
+   self.x = 1 
+   self.lastX = 1 
+   self.lastY= 1
+   self.lazy = lazy 
+   self.isntNative = true 
+   self.resize(w,h)
+   return self--,"Thank you, come again!"
+end 
