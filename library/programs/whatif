@@ -1,0 +1,6 @@
+--By Jackson McNeill, inspired by the Windows Powershell command
+local args = {...}
+if not args[1] then 
+	print"Usage: whatif [programName]\nWill run the program, however, fs, turtle, and some OS functions will print to the screen with their args rather than executing. This is great for debugging, as it prevents damage from being done."
+	return 
+end 
