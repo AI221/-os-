@@ -1,7 +1,13 @@
-print"One moment please..."
+--debug:
+--buffers = {}
+
+
+--print"One moment please..."
+term.clear()
 --capture shellAPI
 shellAPI = shell
 osStuff = {}
+
 if multishell then 
   sleep(0)
   --tlco
@@ -37,7 +43,7 @@ if multishell then
     print"Just insert a floppy with a startup program. You've gone through 2-3 failsafes and crashed them all."
     sleep(10)
   end
-  print"Injection Finializing..."
+  --print"Injection Finializing..."
   os.queueEvent"terminate"--cause the shell to terminate
 else 
   os.run({},"/library/run") --their cc version does not have multshell
