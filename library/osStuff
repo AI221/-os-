@@ -1,15 +1,27 @@
 --  ¥
 --load game-engine
-os.loadAPI"Game-Engine/redirect"
-os.loadAPI"Game-Engine/game"
-local args={...}
---no terminate
 local ospe=os.pullEvent
 os.pullEvent = coroutine.yield
+os.loadAPI"/Game-Engine/redirect"
+os.loadAPI"/Game-Engine/game"
+os.loadAPI"/library/buffer"
+function restore() --do something more effecient than this eventually
+	os.pullEvent = ospe 
+end 
+osStuff.settings = {}
+osStuff.settings.useAsciiPointer = true 
+osStuff.settings.capDirs = true 
+osStuff.settings.useDash = true
+local args={...}
+--no terminate
+
 
 --code
-osStuff.splashes ={"The cake is a lie!","I don't know what you want me to say.","Possibly the first OS with a GUI not to boot to it.",";;","SPLASH!","Top-level coroutine!","TwoOS!","startx... why not starty?","","This text is hard to re\-\-\- nevermind...","New\nline.","I like to put a little coffee in my tea---I mean---ugggh, screwed up that joke.","I like to put a little chocolate in my mil---FFFFFFFFF","The cow goes \"Man, living here for free is great!\"","for i=1,100 do \n  print\"I will not use code in class\"\nend","Out of jokes. ","Blue!!!!","3good5you","In Soviet Russia, Waldo finds YOU!","In capatalist America, bank robs YOU!","makeYouLaugh() --> \"Lol xD\"","\n\n","Turtles and Rectangles dimension in Soup"," ","Infect! 5 days to send me money or I'll wipe the computer, but secretly I already have.","LandLua","EXTERMINATE!","They are fast. Faster than you can belive! DON'T turn your back, DON'T look away, and DON'T blink!\n... good luck."}--they can't control this from code anyway
-
+if args[1] == "nosplash" then 
+	osStuff.spashes = {""}
+else 
+	osStuff.splashes ={"The cake is a lie!","Possibly the first OS with a GUI not to boot to it.",";;","SPLASH!","Top-level coroutine!","TwoOS!","startx... why not starty?","","This text is hard to re\-\-\- nevermind...","New\nline.","I like to put a little coffee in my tea---I mean---ugggh, screwed up that joke.","I like to put a little chocolate in my mil---FFFFFFFFF","The cow goes \"Man, living here for free is great!\"","for i=1,100 do \n  print\"I will not use code in class\"\nend","Out of jokes. ","Blue!!!!","3good5you","In Soviet Russia, Waldo finds YOU!","In capatalist America, bank robs YOU!","makeYouLaugh() --> \"Lol xD\"","\n\n","Turtles and Rectangles dimension in Soup"," ","Infect! 5 days to send me money or I'll wipe the computer, but secretly I already have!","LandLua","EXTERMINATE!","They are fast. Faster than you can belive! DON'T turn your back, DON'T look away, and DON'T blink!\n... good luck.","]os[","Access Denied.","Zoom in 300%! Enhance resultion!","If there are motherboards, are there fatherboards too?","LinusCatTips is a thing...","World, Hello!","jacksonmcneill.ddns.net","Turning-complete? Well, it's almost done!",'IF POE WERE A TECHIE\n\nOnce upon a midnight dreary,\nfingers cramped and vision bleary,\nsystem manuals piled high\nand wasted paper on the floor,\nlonging for the warmth of bed sheets,\nstill I sat there, doing spreadsheets.\n\nHaving reached the bottom line,\nI took a floppy from the drawer.\nTyping with a steady hand,\nI then invoked the "save" command\nand waited for the disk to store,\nonly this and nothing more.\n\nDeep into the monitor peering,\nlong I sat there wond\'ring, fearing\nwhile the disk kept churning,\nturning yet to churn some more.\n"Save!" I said, "You cursed mother!\nSave my data from before!"\n\nOne thing did the phosphors answer\nonly this and nothing more, just,\n "Abort, Retry, Ignore?"\nWith my fingers pale and trembling,\nslowly toward the keyboard bending,\nlonging for a happy ending,\nhoping all would be restored,\nPraying for some guarantee,\ntimidly I pressed a key.\nBut on the screen there still persisted,\nwords appearing as before.\nGhastly grim they blinked and taunted,\nhaunted, as my patience wore, saying,\n"Abort, Retry, Ignore?"\n\nThere I sat, distraught, exhausted;\nby my own machine accosted.\nGetting up, I turned away,\nand paced across the office poor.\nAnd then I saw a dreadful sight:\na lightning bolt cut through the night.\n\nA gasp of horror overtook me,\nshook me to my very core.\nThe lightning zapped my previous data,\nlost and gone forevermore. Not even,\n"Abort, Retry, Ignore?"\n',"They told me I can't; so therefore I will.","A foo walked into a bar, took a look arround, and said, \"Hello, World!\""}--they can't control this from code anyway
+end
 if term.usingNoColor then 
 	print"Note - You do not need to use nocolor to run this OS. It natively supports basic computers."
 	sleep(10)
@@ -22,6 +34,7 @@ elseif term.isColor() then
 	osStuff.commandColor=colors.blue
 	osStuff.dirColor = colors.green
 	osStuff.clearBorderColor = colors.lightGray
+	osStuff.errorColor = colors.red
 else
 	osStuff.backColor = colors.white
 	osStuff.textColor = colors.black 
@@ -29,13 +42,7 @@ else
 	osStuff.commandColor = colors.black 
 	osStuff.dirColor = colors.black
 	osStuff.clearBorderColor = colors.black
-end 
-local noSplash
-local runProg = args[2]
-if args[1] then
-	if string.find(args[1],"nosplash") then 
-		noSplash=true
-	end
+	osStuff.errorColor = colors.black
 end
 function osStuff.specialPrint(text,time)--fancy name printing
 	text = text or ""
@@ -53,7 +60,7 @@ function osStuff.specialPrint(text,time)--fancy name printing
 		if writeThis=="\n" then--new line
 			term.setBackgroundColor(osStuff.backColor or 1)
 			print" "
-			term.setCursorPos(1,y+1)
+			--term.setCursorPos(1,y+1)
 		else
 			write(writeThis)
 			term.setBackgroundColor(colors.white)
@@ -66,88 +73,32 @@ function osStuff.specialPrint(text,time)--fancy name printing
 	term.setCursorPos(term.getCursorPos()-1,y)
 	print" "
 end
-local accType,accPass
-function osStuff.int()
-	term.setBackgroundColor(osStuff.backColor or 1)
-	term.setTextColor(osStuff.textColor or 1)
-	term.clear()
-	term.setCursorPos(1,1)
-	term.setCursorBlink(false)
-	local r = math.random(1,150)--1/50 chance to get easter egg
-	if r==1 then 
-		osStuff.specialPrint"GLaDOS V2"
-		noSplash = false 
-		osStuff.splashes = {"Oh, how are you holding up? BECAUSE I'M A POTATO."}
-	elseif r==2 then 
-		osStuff.specialPrint"Illuminati Secrets Browser V3"
-		noSplash = false 
-		osStuff.splashes = {"Yes, blame bush.\nIt makes our life MUCH easier."}
-	elseif r==3 then 
-		osStuff.specialPrint"Badwolf VBadwolf.badwolf"
-		noSplash = false 
-		osStuff.splashes={"Badwolf."}
-	else 
-		osStuff.specialPrint"[os] V0.1"
-	end
-	--let's select from one of our fine splashes
-	if not noSplash then
-		local whichSplash = math.random(1,#osStuff.splashes)
-		--print the splash
-		osStuff.specialPrint(osStuff.splashes[whichSplash])
-
-	else 
-		term.setCursorPos(1,2)
-	end
-	term.setCursorBlink(true)
-	--request password
-	if args[3]~="nopass" then 
-		local a = loadfile"library/pswd"
-		local ok,err,pss=pcall(a)
-		accType = err
-		accPass = pss
-		if not ok then
-			while true do 
-				coroutine.yield() 
-			end 
-		end 
-	end
-	--display MOTD
-	local a = fs.open("/library/motd","r")
-	local f 
-	if a then 
-		f = a.readAll() 
-		a.close() 
-	end 
-	print(f or "")
-	--now they can terminate
-	os.pullEvent=ospe
-	if r==3 then 
-		print"Badwolf badwolf to badwolf the badwolf."
-	elseif r==2 then 
-		print"Type Illuminati to start the secrets browser."
-	elseif r==1 then 
-		print"Type GLaDOS to start GLaDOS."
-	else
-		print"Run startx to start the GUI."
-	end 
-	if runProg then 
-		pcall(function() shell.run(runProg) end)
-	end 
-	while true do
-		osStuff.doMain()
-	end
-
-end
 function osStuff.doDir()
---cursor crap
+	term.setBackgroundColor(osStuff.backColor)
 	if shell.dir()=="" then else--not a dir not a problem
 		term.setTextColor(osStuff.dirColor)
-		term.setBackgroundColor(osStuff.backColor)
-		local a = string.gsub(string.upper(shell.dir()).." ","/"," - ")
-		write(a)
-		if #a>=term.getSize()-1 then 
+		local dir = shell.dir()
+		if osStuff.settings.capDirs then 
+			dir = string.upper(dir)
+		end 
+		if osStuff.settings.useDash then 
+			dir = string.gsub(dir,"/"," - ")
+		end 
+		write(dir.." ")
+		if #dir>=term.getSize()-1 then 
 			print()
 		end
+		if osStuff.settings.useAsciiPointer then 
+			local x,y = term.getCursorPos()
+			term.setCursorPos(x-1,y)
+		end
+	end
+	if osStuff.settings.useAsciiPointer then 
+		term.setTextColor(osStuff.commandColor)
+		write"» "
+		term.setTextColor(osStuff.textColor)
+	else 
+		--write" "
 	end
 end
 function osStuff.centerWrite(text)
@@ -162,331 +113,6 @@ end
 function osStuff.giveFenv(program)
 	local f=getfenv()
 	return setfenv(program,f)
-end
---meta stuff, based of off lyqyd's code @ http://www.computercraft.info/forums2/index.php?/topic/18646-
---modifications to standard found @ http://jacksonmcneill.ddns.net/[os]_meta
--- Create local references to fs functions before they are modified
-local accountType = "app" --Changing this can configure what apps are treated as. Treated as "app" by default.
--- Create local references to meta functions, as these could be changed by the user:
-
--- Create local references to overwritten fs functions
-local isReadOnly = fs.isReadOnly
-local open = fs.open 
-local delete = fs.delete
-local copy = fs.copy 
-local move = fs.move
-
-
-
-local function parseMeta(metaPath)
-	if fs.exists(metaPath) then
-		local handle = open(metaPath, "r")
-		if handle then
-			local data = {}
-			local fn, err = loadstring(handle.readAll())
-			handle.close()
-			if fn then
-				setfenv(fn, data)
-				local success, err = pcall(fn)
-				if success then
-					return data
-				else
-					return nil, err
-				end
-			else
-				return nil, err
-			end
-		else
-			return nil, "could not read metadata"
-		end
-	else
-		return nil, "no metadata found"
-	end
-end
-function osStuff.getMetadataForFile(path)
-	return parseMeta(fs.combine(".meta", path))
-end
-local function getMetadataForFolder(folderPath, metadata)
-	if not metadata then metadata = {} end
-	for _, file in ipairs(fs.list(folderPath)) do
-		local path = fs.combine(folderPath, file)
-		if fs.isDir(path) then
-			getMetadataForFolder(path, metadata)
-		else
-			metadata[file] = parseMeta(path) --modified: changed path to file. This will remove the ".meta/" prefix.
-		end
-	end
-	return metadata
-end
-
-function osStuff.getAllMetadata()
-	if fs.exists(".meta") and fs.isDir(".meta") then
-		return getMetadataForFolder(".meta")
-	else
-		return nil, "no metadata available"
-	end
-end
-local getAllMeta = osStuff.getAllMetadata
-local getFile = osStuff.getMetadataForFile
-local getMetaForFile = osStuff.getMetadataForFile -- We need a local reference so they cannot modify it
-local function writeMeta(file,name,auth,ftype,times,perm,otherStuff)
-	local a = getMetaForFile(file)
-	if not a then --creating new 
-		if game.inputCheck({file,name,auth,ftype,times,perm,otherStuff},{{"string"},{"string",},{"string",},{"string",},{"table",},{"table"},{"table","nil"}},"osStuff.writeMeta(internal)(new)") then 
-			return false 
-		end 
-		a={}
-		a.name = name
-		a.author = auth
-		a.type = ftype 
-		a.timestamp = times 
-		a.permissions = perm
-	else --overwriting old
-		if game.inputCheck({file,name,auth,ftype,times,perm,otherStuff},{{"string"},{"string","nil"},{"string","nil"},{"string","nil"},{"table","nil"},{"table","nil"},{"table","nil"}},"osStuff.writeMeta(internal)(changing)") then 
-			return false 
-		end
-		a.name = name or a.name
-		a.author = auth or a.author
-		a.type = ftype or a.type 
-		
-		times = times or {}
-		times.accessed = times.accessed or (a.timestamp or {}).accessed
-		times.modified = times.modified or (a.timestamp or {}).modified
-		times.created = times.created or (a.timestamp or {}).created
-		a.timestamp = times or a.timestamp 
-		perm = perm or {}
-		perm.admin = perm.admin or (a.permissions or {}).admin
-		perm.app = perm.app or (a.permissions or {}).app
-		perm.guest = perm.guest or (a.permissions or {}).guest
-		a.permissions = perm or a.permissions
-	end 
-	-- Are they an admin? 
-
-	--write it
-	local c =""
-	for i,o in pairs(a) do 
-		if type(o)=="string" then 
-			c=c..i.." = '"..o.."'\n"
-		elseif type(o)=="table" then
-			c=c..i.." = "..textutils.serialize(o).."\n"
-		else 
-			return game.e("Unexpected variable while piecing together string: "..type(o))
-		end 
-	end 
-	--game.l(c) ----debug
-	c=c.."\n"..(otherStuff or "")
-	local b = open(fs.combine(".meta", file),"w")
-	b.write(c)
-	b.close()
-end 
-function osStuff.writeMeta(file,name,auth,ftype,times,perm,pass)
-	if pass == accPass then 
-		-- Do they have access?
-		local b = getMetaForFile(file)
-		if b then 
-			if b.permissions then 
-				if b.permissions["admin"] then --if admin doesn't exist, let them slide
-					if b.permissions[accType] ~= 2 then
-						return game.e"You do not have permission to access this file!"
-					end 
-				end 
-			end
-		end 
-		if accType ~="admin" then 
-			permissions = permissions or {}
-			permissions.admin = 2 
-			permissions.guest = 2
-			--they are allowed to configure app permissions
-		end 
-		writeMeta(file,name,auth,ftype,times,perm)
-		return true
-	end 
-	return false
-end 
-
-
-function osStuff.appMeta(file,name,auth,ftype,times)
-	local a = getMetadataForFile(file)
-	if not a then --creating new 
-		if game.inputCheck({file,name,auth,ftype,times},{{"string"},{"string",},{"string",},{"string",},{"table",}},"appMeta(new)") then 
-			return false 
-		end
-		local permissions = {admin = 2, guest = 2, apps = 2}
-	else 
-		if game.inputCheck({file,name,auth,ftype,times,perm},{{"string"},{"string","nil"},{"string","nil"},{"string","nil"},{"table","nil"},{"table","nil"}},"appMeta(changing)") then 
-			return false 
-		end
-		-- Do they even have access to this file? 
-		local b = getMetadataForFile(file)
-		if b.permissions.app ~= 2 and b.perms[accType] ~= 2 then  -- Not only do apps need perms to this, but the user using the app does too.
-			return "You do not have permission to access this file!"
-		end 
-		
-	end 
-	writeMeta(file,name,auth,ftype,permissions,times)
-end 
-function osStuff.prgName(path)
-	string.gsub(path,"/","\\")
-	local a
-	while true do 
-		a=string.find(path,"/")
-		if not a then 
-			break
-		end 
-		path = string.sub( path, a+1, #path )
-	end 
-	return path 
-end 
-
-
-
-
-
-
-
---]]
-
-
-
-function fs.isReadOnly(file)
-	local a = getFile(file)
-	if a then 
-		if a.permissions then 
-			if a.permissions[accountType] then 
-				if a.permissions[accType] == 1 then 
-					if a.permissions[accountType] == 0 then 
-						return "noAccess" -- Allows programs to support having no access, but unsupported programs will at least not try to write to the files
-					elseif a.permissions[accountType]==1 then 
-						return true 
-					end 
-				elseif a.permissions[accType]==0 then 
-					return "noAccess"
-				end 
-				if a.permissions[accountType] == 1 then 
-					return true 
-				elseif a.permissions[accountType] == 0 then 
-					return "noAccess" -- Allows programs to support having no access, but unsupported programs will at least not try to write to the files
-				end 
-			end 
-		end 
-	end 
-	--print("    "..file.."    ")
-	--sleep(3)
-	if string.sub(shell.resolve(file),1,6) == ".meta/"  then 
-		return true 
-	end 
-	return isReadOnly(file) -- if something didn't exist or allowed write, return the native isReadOnly.
-end
-local function n() return "Permission Denied"  end 
-local function e() error "Permission Denied" end
-local function t() end
-local readOnly = fs.isReadOnly -- We have to create a local reference, or this could be easily edited.
-function fs.open(file,mode)
-	local a = readOnly(file) -- check meta/native read-only
-	--print(a)
-	if mode == "w" or mode == "a" then 
-		if a then -- we'll need to return something special
-			return { 
-				write = e,
-				writeLine = e,
-				flush = e, 
-				close = t,
-			}
-		else 
-			if open(file,"r") then 
-				writeMeta(file,nil,nil,nil,{modified = os.day()..", "..textutils.formatTime(os.time(),true)})
-			else 
-				writeMeta(file,nil,nil,nil,{created = os.day()..", "..textutils.formatTime(os.time(),true)})
-			end
-			return open(file,mode)
-		end
-	elseif mode == "r" then 
-		if a == "noAccess" then 
-			return {
-				readLine = t, -- They will end up displaying this, most likely
-				readAll = n,
-				close = t,
-			} 
-		else 
-			writeMeta(file,nil,nil,nil,{accessed = os.day()..", "..textutils.formatTime(os.time(),true)}) -- If they overwrite this, they will achieve nothing.
-			return open(file,mode)
-		end 
-	elseif mode =="rb" then 
-		if a == "noAccess" then 
-			return {
-				read = n, -- They will end up displaying this, most likely
-				close = t,
-			} 
-		else 
-			return open(file,mode)
-		end 
-	elseif mode == "wb" or mode == "ab" then 
-		if a then 
-			return {
-				readLine = t,
-				close = t,
-				flush = t,
-			} 
-		else 
-			return open(file,mode)
-		end 
-	end 
-end 
-function fs.copy(a,b)
-	local c = readOnly(a) 
-	local d = readOnly(b) 
-	if d then
-		e()
-		return -- Just in case
-	elseif c == "noAccess" then 
-		e() 
-		return -- Just in case
-	end 
-	return copy(a,b)
-end
-function fs.move(a,b)-- based of copy
-	local c = readOnly(a) 
-	local d = readOnly(b) 
-	if d then
-		e()
-		return -- Just in case
-	elseif c == "noAccess" then 
-		e() 
-		return -- Just in case
-	end 
-	return move(a,b)
-end
-function fs.delete(a)
-	local b = readOnly(a)
-	if b then 
-		e() 
-		return -- Just in case
-	end 
-	return delete(a) 
-end
---Accessing metadata with current accounts permission: 
-function osStuff.open(file,mode,pass)
-	if pass == accPass then 
-		-- Do they have access?
-		local b = getMetaForFile(file)
-		if b then 
-			if b.permissions then 
-				if b.permissions.admin then --we let them off if there's no admin perms set
-					if b.permissions[accType] ~= 2 then 
-						if not ( mode ~="a" and mode ~="w" and b.permissions[accType] == 1 ) then 
-							return false,game.e"You do not have permission to access this file!"
-						end 
-					end
-				end 
-			end 
-		end  
-		--Are they trying to access metadata as a non-admin?
-		if accType ~= "admin" and string.sub(shell.resolve(file),1,6) == ".meta/"  then 
-			return false 
-		end 
-		return open(file,mode)
-	end 
-	return false
 end
 -- Add [os] help to the help app 
 local nativeLookup = help.lookup 
@@ -513,8 +139,9 @@ end
 -- Coroutine Managment functions
 local routines = {}
 local buffers = {}
+local requests = {}
 local protected = {"main",}
-local active 
+local active
 function osStuff.newRoutine(name,funct,bSizex,bSizey)
 	if routines[name] then 
 		return false,1
@@ -524,7 +151,13 @@ function osStuff.newRoutine(name,funct,bSizex,bSizey)
 		local bSizex,bSizey = term.getSize()
 		bSizey=bSizey-1 
 	end 
-	buffers[name] = redirect.createRedirectBuffer(bSizex,bSizey)
+	local a = term.current()
+	buffers[name] = buffer.newBuf(bSizex,bSizey)
+	--first run 
+	term.redirect(buffers[name])
+	local _ 
+	_,requests[name]=coroutine.resume(routines[name])
+	term.redirect(a)
 	return true 
 end 
 function osStuff.killRoutine(name)
@@ -545,6 +178,9 @@ function osStuff.getBuffer(name)
 	end 
 	return buffers[name] 
 end 
+function osStuff.getRoutineStatus(name)
+	return coroutine.status(routines[name]) 
+end
 function osStuff.listRoutines()
 	local a = {}
 	for i,o in pairs(routines) do 
@@ -552,13 +188,169 @@ function osStuff.listRoutines()
 	end 
 	return a 
 end 
-function osStuff.makeRoutineActive(name)
+function osStuff.makeRoutineActive(name,x,y)
+	x,y=x or 1,y or 1
 	for i=1,#protected do 
 		if name==protected[i] then 
 			return false,1 
 		end 
 	end 
-	buffers[name].makeActive()
+	local a = term.current()
+	--make last one no longer active
+	if active then 
+		buffers[active].makeInactive()
+	end
+	--term.redirect(buffers[name])
+	--local native = term.current()
+	--function buffers[name].
+	buffers[name].makeActive(x,y)
+	--buffers[name].isActive = true
+	--test
+	
+	--print'Hello,World!'
+	--term.redirect(a)
 	active = name 
 end 
+local foucusedEvents = {"key","char","mouse_click","mouse_drag","mouse_scroll",}
+function osStuff.initRoutines()
+	osStuff.xStarted = true 
+	local cT = term.current()
+	while true do 
+		local a = {os.pullEvent()} -- Change to coroutine.yield
+		term.redirect(cT)
+		--buffers[active].blit(1,1)
+		for i=1,#protected do 
+			if routines[protected[i]] then 
+				coroutine.resume(routines[protected[i]])
+			end 
+		end 
+		-- User stuff:
+		if a[1]=="mouse_click" or a[1]=="mouse_drag" or a[1]=="mouse_scroll" then 
+			a[4]=a[4]-1
+		end 
+		for i,o in pairs(routines) do 
+			game.l(i.."s "..coroutine.status(routines[i]))
+			if coroutine.status(routines[active]) == "dead" then 
+				--the active routine is dead!
+			end 
+			if i~=protected[i] and coroutine.status(routines[i]) == "suspended" then 
+				--term.redirect(cT)
+				--game.l(textutils.serialize(buffers[i]))
+				term.redirect(buffers[i]) --------
+				game.l("a: "..active)
+				if active == i then 
+					game.l('1 '..(tostring(requests[i]) or ""))
+					if a[1]==(requests[i] or a[1]) then 
+						--print"r"
+						local _
+						game.l("Resuming routine: "..active)
+						_,requests[i] = coroutine.resume(routines[i],unpack(a))
+						game.l(tostring(_))
+						--print(requests[i])
+					end 
+				else 
+					--go through events that need focous to recieve
+					local bad
+					local _
+					for q,w in pairs(foucusedEvents) do 
+						if a[1]==w then 
+							bad = true 
+						end 
+					end 
+					if not bad then 
+						_,requests[i]=coroutine.resume(routines[i],unpack(a))
+						game.l(tostring(_))
+					end 
+				end 
+			end 
+		end 
+	end 
+end 
+--lang system:
+local lang={}
+--run the language file 
+local b = fs.open('/library/lang/def',"r")
+local c 
+if b then 
+	c = b.readAll()
+	b.close()
+end
+local a = loadfile("/library/lang/"..(c or ""))
+if a then 
+	setfenv(a,lang)
+	pcall(a)
+else 
+	print"\nWarning: Language file is missing or has errors. The OS will look very weird."
+	--sleep(4)
+end 
+function osStuff.g(a)
+	return lang[a] or a
+end
+function osStuff.switchLanguage(newLang)
+	local a = fs.open('/library/lang/def',"w")
+	a.write(newLang)
+	a.close()
+end 
 
+
+
+
+------------------------------
+--[[~~~Clipboard System~~~]]--
+------------------------------
+local clipboardStuff 
+function osStuff.copyToClipboard(a) 
+	if type(a) == "string" then 
+		a = {a}
+	end 
+	clipboardStuff = a 
+end 
+function osStuff.getClipboard(a)
+	return clipboardStuff 
+end 
+
+--[[Term fix :
+function term.clearLine(l) 
+	l= l or term.getCursorPos()
+	local white = ""
+	for i=1,term.getSize() do 
+		white = white.." "
+	end 
+	local x,y = term.getCursorPos()
+	--term.setBackgroundColor(colors.black)
+	term.setCursorPos(1,l)
+	print(white)
+	term.setCursorPos(x,y)
+end 
+--]]
+--A commonly used function:
+function osStuff.prgName(path)
+  string.gsub(path,"/","\\")
+  local a
+  while true do 
+    a=string.find(path,"/")
+    if not a then 
+      break
+    end 
+    path = string.sub( path, a+1, #path )
+  end 
+  return path 
+end 
+function term.native()--don't let them bypass a buffer api
+	return term.current()
+end 
+
+--Overwiting printerror to use our colorscheme 
+function printError(txt)
+	term.setTextColor(osStuff.errorColor)
+	print(txt)
+	term.setTextColor(osStuff.textColor)
+end 
+
+
+
+
+--settings
+if fs.exists"/library/settings" then 
+	shell.run"/library/settings"
+end 
