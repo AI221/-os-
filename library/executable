@@ -1,3 +1,4 @@
+
 --¥
 --[[
 ARgS:
@@ -7,7 +8,6 @@ ARgS:
 4 - "stop" will cause Newshell to ceise to initialize.
 ]]
 --config:
-
 --aliases
 shell.setAlias("lock","/library/pswd")
 shell.setAlias("oldEdit","/rom/programs/edit")
@@ -264,7 +264,7 @@ local exists = fs.exists
 local list = fs.list 
 -- I misunderstood this shell function ( :P ) so here's what I thought it did. I made a local reference anyway.
 local function resolve(a)
-  return fs.combine(a,"")
+  return combine(a,"")
 end 
 local getDir = osStuff.getDir
 --Create a local reference to sleep
@@ -468,7 +468,7 @@ end
 
 
 function fs.isReadOnly(file)
-  if fs.isDir(file) then 
+  if isDir(file) then 
     local level = math.min( lowestPerms(file,accType) , lowestPerms(file,accountType) )
     if level == 1 then 
       return true 
