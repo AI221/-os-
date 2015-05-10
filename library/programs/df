@@ -1,20 +1,20 @@
 --By Jackson McNeill, with loose inspiration from the Unix command
 local args = {...}
 if not args[1] then 
-  print(osStuff.g("dfUsage"))
+  osStuff.p"df.usage"
   return 
 end 
 args[1]="/"..shell.resolve(args[1])
 if not fs.exists(args[1]) then 
-  printError(args[1].." does not exist!")
+  printError(args[1]..osStuff.g"noExist")
   return 
 elseif fs.isReadOnly(args[1]) == "noAccess" then 
-  printError("Insufficient privileges to access "..args[1].."!")
+  printError(osStuff.g"df.badpriv"..args[1])
   return false 
 end 
 local function getSpace(file)
   if fs.isReadOnly(file) =="noAccess" then 
-    print("Warning - Did not have sufficient privileges to open file "..file..". Will be excluded from count.")
+    print(osStuff.g"df.warnbadpriv1"..file..osStuff.g"df.warnbadpriv2")
     return 0
   end 
   local f = fs.open(file,"r")
@@ -33,7 +33,7 @@ local function getFolder(folder)
     else 
       r=r+getSpace(folder.."/"..fls[i])
       if not r then  
-        printError"(1) An error occurred getting the total space of a file."
+        printError(osStuff.g"df.errorTotalSpace1")
         return 
       end 
     end
@@ -47,7 +47,7 @@ if fs.isDir(args[1]) then
 else 
   total = getSpace(args[1])
   if not total then 
-    printError"(2) An error occurred getting the total space of a file."
+    printError(osStuff.g"df.errorTotalSpace2")
     return 
   end 
 end 
