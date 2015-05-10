@@ -96,8 +96,9 @@ function newBuf(w,h)
 			for i=2,table.maxn(self)+1 do 
 				--game.l("w "..i.."n "..i-1)-----------------------------------------------------
 				self[i-1] = self[i]
+				self[0] = nil 
 			end 
-			
+			 
 		end 
 		if self.isActive then 
 			--clear the actual term:
@@ -109,7 +110,7 @@ function newBuf(w,h)
 			--[[if self.isActive then 
 				self.t.scroll(ammount)
 			end ]]--reason: caused the ENTIRE term to scroll, not just our buffer,
-			--we're going to have to blit it 
+			--we'r e going to have to blit it 
 			self.blit()
 			self.setCursorPos(1,19)
 		end 
