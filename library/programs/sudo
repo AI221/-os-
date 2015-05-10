@@ -5,9 +5,10 @@ if not args[1] then
   print(osStuff.g("sudoUsage"))
   return 
 end 
-args[1]="/"..shell.resolveProgram(args[1])
-if not fs.exists(args[1]) then 
-  printError(args[1].." does not exist!")
+local before = args[1]
+args[1]="/"..(shell.resolveProgram(args[1]) or "")
+if (not fs.exists(args[1])) or fs.isDir(args[1]) then 
+  printError(before.." does not exist or was a directory!")
   return 
 end 
 term.write"Password: "
@@ -90,6 +91,7 @@ if type(program) == "function" then
 	end ]]
 	--[[local env = getfenv()
 	setfenv(program,env)]]
+	osStuff.isSudo = true
 	local ok,err = pcall(program, unpack(args, 2) )
 	if not ok then 
 		printError(err)
@@ -100,3 +102,4 @@ if type(program) == "function" then
 else 
 	printError(program)
 end 
+osStuff.isSudo = nil
