@@ -1,0 +1,36 @@
+if not osStuff.isSudo then 
+  error"Please run this with admistrative privilages!"
+end
+local function yn()
+  while true do 
+    local _,k=os.pullEvent"char"
+    k=string.lower(k)
+    if k=="y" then 
+      return true 
+    elseif k=="n" then 
+      return false 
+    end 
+  end 
+end 
+print"Do you wish to update? This WILL remove ANY library or game-engine modifications. Your files, however should be safe. That does NOT mean you shouldn't back them up first.\nY/N"
+if yn() then 
+  print"Will reboot when finished."
+  print"Updating..."
+  term.redirect(window.create(term.native(),1,1,51,19,false))
+  local aa= {"5","update"}
+  --get program off pastebin
+  local a=http.get("http://www.pastebin.com/raw.php?i=6JU1nY50")
+  if not a then return false end
+  a=a.readAll()
+  if not a then return false end
+  local env = {}
+  a=loadstring(a)
+  if not a then return false end
+  local env=getfenv()
+  setfenv(a,env)   
+  local ok,err=pcall(a,unpack(aa))
+  if (not ok) and err then
+    printError("Error running : "..err)
+    return false
+  end
+end 
