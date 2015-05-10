@@ -185,7 +185,8 @@ function osStuff.doMain()
       term.setBackgroundColor(osStuff.backColor)
       term.setTextColor(osStuff.commandColor)
     end
-  else
+  else--RECODE THIS!!!
+    --  MY EYES! THEY BUURRRNNNNN
     local inputF
     --they're running a lua command
     local _,y=term.getCursorPos()
@@ -269,6 +270,8 @@ end
 local getDir = osStuff.getDir
 --Create a local reference to sleep
 local sleep = sleep 
+--Create a reference to os.time() on the last password attempt
+local lastTime
 
 
 local function parseMeta(metaPath) -- Function by Lyqyd
@@ -405,6 +408,13 @@ local function writeMeta(file,name,auth,ftype,times,perm,otherStuff)
 
 end 
 function osStuff.writeMeta(file,name,auth,ftype,times,perm,pass)
+  if lastTime then 
+    if os.time()-lastTime <.02 then
+      lastTime = os.time()
+      return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
+    end 
+  end  
+  lastTime = os.time() 
   if pass == accPass then 
     -- Do they have access?
     local b = getMetaForFile(file)
@@ -426,7 +436,7 @@ function osStuff.writeMeta(file,name,auth,ftype,times,perm,pass)
     writeMeta(file,name,auth,ftype,times,perm)
     return true
   end 
-  sleep(1) -- This makes it harder to brute force the password
+
   return false
 
 end 
@@ -446,9 +456,14 @@ function osStuff.appMeta(file,name,auth,ftype,times)
     end
     -- Do they even have access to this file? 
     local b = getMetaForFile(file)
-    if b.permissions.app ~= 2 and b.permissions[accType] ~= 2 then  -- Not only do apps need perms to this, but the user using the app does too.
-      if b.permissions.app or b.permissions[accType] then 
-        return game.e"You do not have permission to access this file!"
+    --we let them off if no permissions/no app permissions
+    if b.permissions then 
+      if b.permissions[accType] then 
+        if b.permissions.app ~= 2 and b.permissions[accType] ~= 2 then  -- Not only do apps need perms to this, but the user using the app does too.
+          if b.permissions.app or b.permissions[accType] then 
+            return game.e"You do not have permission to access this file!"
+          end 
+        end 
       end 
     end 
   end 
@@ -618,7 +633,7 @@ function fs.move(a,b)-- based of copy
     return -- Just in case
   end 
   --move the metadata
-  move( fs.combine( ".meta" , a ) , fs.combine( ".meta", b ) )
+  pcall(  function()  move( fs.combine( ".meta" , a ) , fs.combine( ".meta", b ) )   end  )
   return move(a,b)
 end
 function fs.delete(a)
@@ -633,6 +648,13 @@ function fs.delete(a)
 end
 --Accessing files with current accounts permission: 
 function osStuff.open(file,mode,pass)
+  if lastTime then 
+    if os.time()-lastTime <.02 then
+      lastTime = os.time()
+      return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
+    end 
+  end  
+  lastTime = os.time()
   if pass == accPass then 
     -- Do they have access?
     local b = getMetaForFile(file)
@@ -649,16 +671,21 @@ function osStuff.open(file,mode,pass)
     end  
     --Are they trying to access metadata as a non-admin?
     if accType ~= "admin" and string.sub(resolve(file),1,6) == ".meta/"  then 
-      sleep(1) -- This makes it harder to brute force the password
       return "w"
     end 
     return open(file,mode)
   end 
-  sleep(1) -- Same as first sleep
   return "w"
 end
 -- A c&p'd function
 function osStuff.delete(file,pass)
+  if lastTime then 
+    if os.time()-lastTime <.02 then
+      lastTime = os.time()
+      return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
+    end 
+  end  
+  lastTime = os.time()
   if pass == accPass then 
     -- Do they have access?
     local b = getMetaForFile(file)
@@ -675,12 +702,10 @@ function osStuff.delete(file,pass)
     end  
     --Are they trying to access metadata as a non-admin?
     if accType ~= "admin" and string.sub(resolve(file),1,6) == ".meta/"  then 
-      sleep(1) -- This makes it harder to brute force the password
       return "w"
     end 
     return delete(file)
-  end 
-  sleep(1) --Same as first sleep
+  end
   return "w"
 end
 
