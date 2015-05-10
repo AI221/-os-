@@ -414,7 +414,6 @@ function osStuff.writeMeta(file,name,auth,ftype,times,perm,pass)
       return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
     end 
   end  
-  lastTime = os.time() 
   if pass == accPass then 
     -- Do they have access?
     local b = getMetaForFile(file)
@@ -436,7 +435,7 @@ function osStuff.writeMeta(file,name,auth,ftype,times,perm,pass)
     writeMeta(file,name,auth,ftype,times,perm)
     return true
   end 
-
+  lastTime = os.time()
   return false
 
 end 
@@ -654,7 +653,6 @@ function osStuff.open(file,mode,pass)
       return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
     end 
   end  
-  lastTime = os.time()
   if pass == accPass then 
     -- Do they have access?
     local b = getMetaForFile(file)
@@ -671,10 +669,12 @@ function osStuff.open(file,mode,pass)
     end  
     --Are they trying to access metadata as a non-admin?
     if accType ~= "admin" and string.sub(resolve(file),1,6) == ".meta/"  then 
+      lastTime = os.time()
       return "w"
     end 
     return open(file,mode)
   end 
+  lastTime = os.time()
   return "w"
 end
 -- A c&p'd function
@@ -685,7 +685,6 @@ function osStuff.delete(file,pass)
       return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
     end 
   end  
-  lastTime = os.time()
   if pass == accPass then 
     -- Do they have access?
     local b = getMetaForFile(file)
@@ -702,10 +701,12 @@ function osStuff.delete(file,pass)
     end  
     --Are they trying to access metadata as a non-admin?
     if accType ~= "admin" and string.sub(resolve(file),1,6) == ".meta/"  then 
+      lastTime = os.time()
       return "w"
     end 
     return delete(file)
   end
+  lastTime = os.time()
   return "w"
 end
 
