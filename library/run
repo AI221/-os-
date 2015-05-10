@@ -14,31 +14,19 @@ pcall(function()
   end
   --run the osStuff api 
   --use os.run() instead
-  local osS,err
-  osS,err=loadfile("library/osStuff") 
   local env={}
   local a = _G
   a["shell"] = shell
   a["osStuff"]=osStuff
   setmetatable(env,{__index=a})
-  if type(osS)=="function" and (not err) then 
-    if type(osS)=="function" then 
-      setfenv(osS,env)
-      ok,err=pcall(osS,unpack(args))
+  local newshell
+  newshell,err=loadfile"library/executable"
+  if type(newshell)=="function" and (not err) then 
+    if type(newshell)=="function" then 
+      setfenv(newshell,env)
+      ok,err=pcall(newshell,unpack(args))
     else 
-      ok,err = false,osS 
-    end
-  end
-  if ok then 
-    local newshell
-    newshell,err=loadfile"library/executable"
-    if type(newshell)=="function" and (not err) then 
-      if type(newshell)=="function" then 
-        setfenv(newshell,env)
-        ok,err=pcall(newshell,unpack(args))
-      else 
-        ok,err = false,newshell 
-      end
+      ok,err = false,newshell 
     end
   end
   if pArgs[1]=="bypass" then 
