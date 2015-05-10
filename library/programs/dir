@@ -1,8 +1,22 @@
 local args = {...}
-local dirs = fs.list(shell.dir())
+local all
+for i=1,table.maxn(args) do 
+  if args[i] == "-all" then 
+    all=true 
+    if i==1 then 
+      args[1] = nil
+    end 
+  end 
+end
+local dirs = fs.combine( shell.dir(),(args[1] or "") )
+if not fs.exists(dirs) then 
+  printError("Folder "..dirs.." does not exist!")
+  return 
+end 
+dirs = fs.list(dirs)
 local files,folders = {},{}
 for i,o in pairs(dirs) do
-  if not(string.sub(o,1,1) =="." and args[1]~="all") then 
+  if not(string.sub(o,1,1) =="." and (not all)) then 
     if fs.isDir(shell.dir().."/"..o) then 
       table.insert(folders,o)
     else 
