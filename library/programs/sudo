@@ -32,7 +32,7 @@ if type(program) == "function" then
 		oldfs[key] = value 
 	end 
 	-- We override shell.getRunningProgram so 
-	local grp = shell.getRunningPrograg
+	local grp = shell.getRunningProgram
 	function fs.open(a,b)
 		return osStuff.open(a,b,pass)
 	end 
