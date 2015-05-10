@@ -1,37 +1,37 @@
 --By Jackson McNeill, with inspiration from the Unix command
 local args = {...}
 if not args[1] then 
-  print(osStuff.g("statUsage"))
+  osStuff.p"stat.usage"
   return
 end 
-args[1]= shell.dir().."/"..args[1]
+args[1]= fs.combine(shell.dir(),args[1])
 if not fs.exists(args[1]) then 
-	printError"File does not exist!"
+	printError(osStuff.g"fileNoExist")
 	return 
 end 
 
 local meta = osStuff.getMetadataForFile(args[1])
 if not meta then 
-  printError"No metadata found!"
+  printError(osStuff.g"stat.noMeta")
   return 
 end 
 local _d = meta.timestamp.accessed
-local aday = "nil"
-local atime = "nil"
+local aday = osStuff.g"Nil"
+local atime = osStuff.g"Nil"
 if _d then 
   aday = string.sub(_d,1,string.find(_d,",")-1)
   atime = string.sub(_d,string.find(_d,",")+1,#_d)
 end 
 _d = meta.timestamp.modified
-local mday = "nil"
-local mtime = "nil"
+local mday = osStuff.g"Nil"
+local mtime = osStuff.g"Nil"
 if _d then 
   mday = string.sub(_d,1,string.find(_d,",")-1)
   mtime = string.sub(_d,string.find(_d,",")+1,#_d)
 end 
 _d = meta.timestamp.created
-local cday = "nil"
-local ctime = "nil"
+local cday = osStuff.g"Nil"
+local ctime = osStuff.g"Nil"
 if _d then 
   cday = string.sub(_d,1,string.find(_d,",")-1)
   ctime = string.sub(_d,string.find(_d,",")+1,#_d)
@@ -53,38 +53,38 @@ end
 local function printPerms(var,value)
 	local tValue
 	if value == 0 then 
-		tValue = "No access"
+		tValue = osStuff.g"stat.noAc"
 	elseif value == 1 then 
-		tValue = "Read-only"
+		tValue = osStuff.g"stat.readonly"
 	elseif value == 2 then 
-		tValue = "Read & Write"
+		tValue = osStuff.g"stat.readwrite"
 	end 
 	nWrite(var..": ")
 	tWrite(tValue)
 end 
 
-nWrite"File: "
+nWrite(osStuff.g"File"..": ")
 tWrite(args[1])
-nWrite"Name: "
-tWrite(meta.name or "nil")
-nWrite"Author: "
-tWrite(meta.author or "nil")
-nWrite"Type: "
-tWrite(meta.type or "nil")
-nWrite"Created: Day: "
+nWrite(osStuff.g"stat.name")
+tWrite(meta.name or osStuff.g"Nil")
+nWrite(osStuff.g"stat.author")
+tWrite(meta.author or osStuff.g"Nil")
+nWrite(osStuff.g"stat.type")
+tWrite(meta.type or osStuff.g"Nil")
+nWrite(osStuff.g"stat.cnd")
 mWrite(cday)
-nWrite" Time: "
+nWrite(osStuff.g"stat.time")
 tWrite(ctime)
-nWrite"Last mofified: Day: "
+nWrite(osStuff.g"stat.lmd")
 mWrite(mday)
-nWrite" Time: "
+nWrite(osStuff.g"stat.time")
 tWrite(mtime)
-nWrite"Last accessed: Day: "
+nWrite(osStuff.g"stat.lad")
 mWrite(aday)
-nWrite" Time: "
+nWrite(osStuff.g"stat.time")
 tWrite(atime)
 term.setTextColor(osStuff.dirColor)
-print"Permissions:"
+osStuff.p"stat.perms"
 local prms
 for i,o in pairs((meta.permissions or {})) do 
 	prms = true 
@@ -93,16 +93,16 @@ for i,o in pairs((meta.permissions or {})) do
 end 
 if prms then 
 	if not meta.permissions.admin then 
-		printPerms("admin",2)
+		printPerms(osStuff.g"stat.admin",2)
 	end 
 	if not meta.permissions.guest then 
-		printPerms("guest",2)
+		printPerms(osStuff.g"stat.guest",2)
 	end 
 	if not meta.permissions.app then 
-		printPerms("app",2)
+		printPerms(osStuff.g"stat.app",2)
 	end 
 else 
-	printPerms("everyone",2)
+	printPerms(osStuff.g"stat.evry1",2)
 end 
 
 
