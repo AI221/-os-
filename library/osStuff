@@ -9,7 +9,7 @@ function restore() --do something more effecient than this eventually
 	os.pullEvent = ospe 
 end 
 osStuff.settings = {}
-osStuff.settings.useAsciiPointer = true 
+osStuff.settings.useAsciiPointer = false
 osStuff.settings.capDirs = true 
 osStuff.settings.useDash = true
 osStuff.TEMP = "»"
