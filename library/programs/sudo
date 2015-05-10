@@ -2,23 +2,23 @@
 local args= {...}
 local args = {...}
 if not args[1] then 
-  print(osStuff.g("sudoUsage"))
+  print(osStuff.g("sudo.usage"))
   return 
 end 
 local before = args[1]
 args[1]="/"..(shell.resolveProgram(args[1]) or "")
 if (not fs.exists(args[1])) or fs.isDir(args[1]) then 
-  printError(before.." does not exist or was a directory!")
+  printError(before..osStuff.g"sudo.noexistordir")
   return 
 end 
-term.write"Password: "
+term.write(osStuff.g"plzentpass")
 local pass = read"*"
 local f = osStuff.open(args[1],"r",pass)
 if not f then 
-	printError("You do not have permission to access "..args[1].."!\nIf you are an administrator, change this with medit.")
+	printError(osStuff.g"sudo.npa1"..args[1]..osStuff.g"sudo.npa2")
 	return 
 elseif f == "w" then 
-	printError"Incorrect password!"
+	printError(osStuff.g"badpass")
 	return 
 end 
 local program = f.readAll()
@@ -42,14 +42,14 @@ if type(program) == "function" then
 			a=f.readAll()
 			f.close()
 		else 
-			error"Permission Denied/doesn't exist"
+			error(osStuff.g"noPermExist")
 		end 
 		f = osStuff.open(b,"w",pass)
 		if f then 
 			f.write(a)
 			f.close()
 		else 
-			error"Permission Denied"
+			error(osStuff.g"noPerm")
 		end 
 	end 
 	function fs.move(a,b)
@@ -59,7 +59,7 @@ if type(program) == "function" then
 			p=f.readAll()
 			f.close()
 		else 
-			error"Permission Denied/doesn't exist"
+			error(osStuff.g"noPermExist")
 		end 
 		osStuff.delete(a,pass)
 		f = osStuff.open(b,"w",pass)
@@ -67,7 +67,7 @@ if type(program) == "function" then
 			f.write(p)
 			f.close()
 		else
-			error"Permission Denied"
+			error(osStuff.g"noPerm")
 		end 
 	end 
 	function fs.delete(a)
