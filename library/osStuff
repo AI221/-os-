@@ -9,9 +9,10 @@ function restore() --do something more effecient than this eventually
 	os.pullEvent = ospe 
 end 
 osStuff.settings = {}
-osStuff.settings.useAsciiPointer = false  --I'm currently having issues with the ascii pointer, for now this has to be off, but on the official release I will be sure to fix it. It doesn't look right without it.
+osStuff.settings.useAsciiPointer = true 
 osStuff.settings.capDirs = true 
 osStuff.settings.useDash = true
+osStuff.TEMP = "»"
 local args={...}
 --no terminate
 
@@ -275,13 +276,19 @@ if b then
 	c = b.readAll()
 	b.close()
 end
-local a = loadfile("/library/lang/"..(c or ""))
+print(fs.combine("/library/lang/",(c or "")))
+local a = loadfile("/"..fs.combine("/library/lang/",(c or "")))
+if type(a) ~="function" then 
+	print"\nWarning: Language file is missing or has errors. The OS will look very weird."
+	print("Error: "..tostring(a))
+	sleep(4)
+end
 if a then 
 	setfenv(a,lang)
 	pcall(a)
 else 
 	print"\nWarning: Language file is missing or has errors. The OS will look very weird."
-	--sleep(4)
+	sleep(4)
 end 
 function osStuff.g(a)
 	return lang[a] or a
