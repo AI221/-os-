@@ -10,12 +10,12 @@ end
 
 pcall(function()
   if debug then 
-    args = {"nosplash","","nopass"}
+    args = {"nosplash","",}--"nopass"}
   end
   --run the osStuff api 
   --use os.run() instead
-  
-  local osS,err=loadfile("library/osStuff") 
+  local osS,err
+  osS,err=loadfile("library/osStuff") 
   local env={}
   local a = _G
   a["shell"] = shell
@@ -30,7 +30,8 @@ pcall(function()
     end
   end
   if ok then 
-    local newshell,err=loadfile"library/executable"
+    local newshell
+    newshell,err=loadfile"library/executable"
     if type(newshell)=="function" and (not err) then 
       if type(newshell)=="function" then 
         setfenv(newshell,env)
@@ -43,8 +44,7 @@ pcall(function()
   if pArgs[1]=="bypass" then 
     return 
   end 
-  if term.isColor then 
-    sleep(2)
+  if term.isColor and not (turtle or pocket) then 
     term.clearLine()
     term.setTextColor(colors.white)
     term.setBackgroundColor(colors.blue)
