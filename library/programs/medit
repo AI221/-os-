@@ -1,5 +1,13 @@
 --By Jackson McNeill
 local args = {...}
+-- Look for -r 
+local filemode
+for i=1,table.maxn(args) do 
+	if args[i] == "-r" then 
+		filemode=true 
+		table.remove(args,i)
+	end 
+end 
 if not (args[1] and args[2] and args[3]) then 
 	print(osStuff.g"meditUsage")
 	return 
@@ -20,6 +28,7 @@ local function _meta(name,a,b,c,d,e,pass)
 	end
 end 
 function meta(file,name,auth,ftype,times)
+	--print("F - "..file.." N "..name)
 	local a = osStuff.appMeta(file,name,auth,ftype,times)
 	if a == true then 
 		print"Wrote successfully!"
@@ -29,45 +38,68 @@ function meta(file,name,auth,ftype,times)
 		print"You do not have permission to access this file!"
 	end
 end 
-local password 
-if fs.isReadOnly(args[1])  or args[2] == "permissions" then 
-	term.write"Password: "
-	password = read"*" 
-	if args[2]=="permissions" then 
-		if not args[4] then 
-			print(osStuff.g"meditUsage")
-			return 
-		end 
-		local _table = {}
-		if args[4] == "readwrite" then 
-			_table[args[3]] = 2
-		elseif args[4] == "readonly" then 
-			_table[args[3]] = 1 
-		elseif args[4]=="none" then 
-		    _table[args[3]] = 0
+local password
+local function doDir(filelist,dir)
+	local file 
+	for i=1,#filelist do 
+		file = fs.combine(dir,filelist[i])
+		--print(file)
+		if fs.isDir(file) then 
+			doDir(fs.list(file),file)
 		else 
-			printError"Invalid permission level!"
-			return 
-		end
-		_meta(args[1],nil,nil,nil,nil,_table,password)--file,name,auth,ftype,times,perm,pass
+			if (fs.isReadOnly(file) and (not password))  or args[2] == "permissions" then 
+				--print"A"
+				if not password then 
+					term.write"Password: "
+					password = read"*" 
+				end 
+				if args[2]=="permissions" then 
+					if not args[4] then 
+						print(osStuff.g"meditUsage")
+						return 
+					end 
+					local _table = {}
+					if args[4] == "readwrite" then 
+						_table[args[3]] = 2
+					elseif args[4] == "readonly" then 
+						_table[args[3]] = 1 
+					elseif args[4]=="none" then 
+					    _table[args[3]] = 0
+					else 
+						printError"Invalid permission level!"
+						return 
+					end
+					_meta(file,nil,nil,nil,nil,_table,password)--file,name,auth,ftype,times,perm,pass
+				end 
+			end 
+			if args[2]=="name" then 
+				if password then 
+					_meta(file,args[3],nil,nil,nil,nil,password)
+				else 
+					meta(file,args[3])
+				end 
+			elseif args[2]=="author" then 
+				if password then 
+					_meta(file,nil,args[3],nil,nil,nil,password)
+				else 
+					meta(file,nil,args[3])
+				end 
+			elseif args[2]=="type" then 
+				if password then 
+					_meta(file,nil,nil,args[3],nil,nil,password) 
+				else 
+					meta(file,nil,nil,args[3])
+				end
+			end 
+		end 
 	end 
 end 
-if args[2]=="name" then 
-	if password then 
-		_meta(args[1],args[3],nil,nil,nil,nil,password)
+if filemode then 
+	if fs.isDir(args[1]) then 
+		doDir(fs.list(args[1]),args[1])
 	else 
-		meta(args[1],args[3])
+		printError("File "..args[1].." was given, expected folder.")
 	end 
-elseif args[2]=="author" then 
-	if password then 
-		_meta(args[1],nil,args[3],nil,nil,nil,password)
-	else 
-		meta(args[1],nil,args[3])
-	end 
-elseif args[2]=="type" then 
-	if password then 
-		_meta(args[1],nil,nil,args[3],nil,nil,password) 
-	else 
-		meta(args[1],nil,nil,args[3])
-	end
+else 
+	doDir({args[1]},"/")
 end 
