@@ -1,3 +1,11 @@
+--just in case
+if not fs.exists"library/acc/admin" then 
+  fs.makeDir"library/acc/admin"
+end 
+
+
+
+
 --temp:
 if not game then game={} function game.l(a) end end 
 
@@ -15,9 +23,10 @@ if not osStuff then
 		end 
 		return path 
 	end 
+	function osStuff.g(a) return a end --they'll see reeeaally shortened, bad-grammered, english versions of everything
 end
 
-game.l"startPSWD"
+--game.l"startPSWD"
 local ok,accType,pass=pcall(function()
 	--get password
 	
@@ -30,10 +39,10 @@ local ok,accType,pass=pcall(function()
 	end 
 	local a = fs.list"/library/acc/admin"
 	--combine
-	game.l(textutils.serialize(a))---
-	game.l(textutils.serialize(b))---
+	--game.l(textutils.serialize(a))---
+	--game.l(textutils.serialize(b))---
 	for i,o in pairs(a) do
-		game.l("ab "..o) ---
+		--game.l("ab "..o) ---
 		table.insert(b,"admin/"..o)
 	end 
 	--debug
@@ -44,16 +53,16 @@ local ok,accType,pass=pcall(function()
 
 	if b[1] then
 		local c
-		local z = function(a) if not a then print"User does not exist!" end return a end
+		local z = function(a) if not a then print(osStuff.g('usrNoExist')) end return a end
 		repeat
-			print"Please enter username:"
+			print(osStuff.g("entUsr"))
 			local usr = read()
 			for i=1,#b do 
 				if osStuff.prgName("/library/acc/"..b[i])==usr then 
-					game.l"y"---
+					--game.l"y"---
 					c=i
 				end 
-				game.l("c "..b[i])---
+				--game.l("c "..b[i])---
 			end 
 		until z(c)
 		if c then 
@@ -62,16 +71,16 @@ local ok,accType,pass=pcall(function()
 				pass=f.readAll()
 				f.close()
 			else 
-				print"Account does not exist."
+				print(osStuff.g('usrNoExist'))
 				while true do coroutine.yield() end 
 			end
 
-			if pass == "" then 
-				print"You have no password. Delete library/usr/ and reboot to make one."
-				return
-			end
+			--[[if pass == "" then 
+				print(osStuff.g('noHasPass'))
+				return "guest",""
+			end]]
 			for i=1,4 do
-				print("(Attempt "..tostring(i).."/4) Please enter password:")
+				print("("..osStuff.g"attempt"..tostring(i).."/4) "..osStuff.g"plzentpass")
 				local input = read"*"
 				if input == pass then 
 					--is type admin?
@@ -81,13 +90,13 @@ local ok,accType,pass=pcall(function()
 					return "guest",pass
 				end 
 			end
-			print"Out of attempts."
+			print(osStuff.g('outAttempt'))
 			while true do coroutine.yield() end
 		end
 	else 
 		local input
 		while true do 
-			print"No password found. Please create a password, or leave blank for none:"
+			print(osStuff.g('noPassFound'))
 			input = read()
 			print"Confirm:"
 			if read() == input then 
@@ -107,5 +116,5 @@ if not ok then
 	pcall(function() print"pswd has crashed. Please reboot." print(ok,accType) end)
 	while true do coroutine.yield() end 
 end
---temp
+game.l("Logging in as type "..accType)
 return accType,pass
