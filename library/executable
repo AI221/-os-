@@ -6,7 +6,7 @@ os.loadAPI"/Game-Engine/redirect"
 os.loadAPI"/Game-Engine/game"
 os.loadAPI"/library/buffer"
 osStuff.settings = {}
-osStuff.settings.useAsciiPointer = true 
+osStuff.settings.useAsciiPointer = false
 osStuff.settings.capDirs = true 
 osStuff.settings.useDash = true
 osStuff.TEMP = "»"
