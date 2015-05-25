@@ -12,4 +12,4 @@ Quintuple Agent - Making Nevardon, this OS's default editor. Find it on the CC f
 
 # Warning:
 This is in beta. I really wouldn't trust the permission system with important data.
-Serously.
+Serously. I know several loopholes in the public versions, and even some in my private versions. It's like an old fashion lock: it will keep teenagers and petty thieves out, but if someone is serous enough, they'll pick the lock in 5 minutes top.
