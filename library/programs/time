@@ -1,0 +1,5 @@
+local year,month,day,clock =osStuff.getTime()
+print("Year: "..year)
+print("Month: "..month)
+print("Day: "..day)
+print("Time: "..clock)
