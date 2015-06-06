@@ -1,15 +1,19 @@
 --  ¥
 --load game-engine
 local ospe=os.pullEvent
+local env 
 os.pullEvent = coroutine.yield
 os.loadAPI"/Game-Engine/redirect"
 os.loadAPI"/Game-Engine/game"
 os.loadAPI"/library/buffer"
 osStuff.settings = {}
-osStuff.settings.useAsciiPointer = false
+osStuff.settings.useAsciiPointer = true 
 osStuff.settings.capDirs = true 
 osStuff.settings.useDash = true
+osStuff.version = 0.4
+osStuff.os = "[os]"
 osStuff.TEMP = "»"
+_G.omni = {} -- Omni is for things that can't be trusted unless the user permits, or for the OS itself. They have access to everything, hence the name "omni"
 local args={...}
 --no terminate
 
@@ -18,13 +22,11 @@ local args={...}
 if args[1] == "nosplash" then 
   osStuff.spashes = {""}
 else 
-  osStuff.splashes ={"The cake is a lie!","Possibly the first OS with a GUI not to boot to it.",";;","SPLASH!","Top-level coroutine!","TwoOS!","startx... why not starty?","","This text is hard to re\-\-\- nevermind...","New\nline.","I like to put a little coffee in my tea---I mean---ugggh, screwed up that joke.","I like to put a little chocolate in my mil---FFFFFFFFF","The cow goes \"Man, living here for free is great!\"","for i=1,100 do \n  print\"I will not use code in class\"\nend","Out of jokes. ","Blue!!!!","3good5you","In Soviet Russia, Waldo finds YOU!","In capatalist America, bank robs YOU!","makeYouLaugh() --> \"Lol xD\"","\n\n","Turtles and Rectangles dimension in Soup"," ","Infect! 5 days to send me money or I'll wipe the computer, but secretly I already have!","LandLua","EXTERMINATE!","They are fast. Faster than you can belive! DON'T turn your back, DON'T look away, and DON'T blink!\n... good luck.","]os[","Access Denied.","Zoom in 300%! Enhance resultion!","If there are motherboards, are there fatherboards too?","LinusCatTips is a thing...","World, Hello!","jacksonmcneill.ddns.net","Turning-complete? Well, it's almost done!",'IF POE WERE A TECHIE\n\nOnce upon a midnight dreary,\nfingers cramped and vision bleary,\nsystem manuals piled high\nand wasted paper on the floor,\nlonging for the warmth of bed sheets,\nstill I sat there, doing spreadsheets.\n\nHaving reached the bottom line,\nI took a floppy from the drawer.\nTyping with a steady hand,\nI then invoked the "save" command\nand waited for the disk to store,\nonly this and nothing more.\n\nDeep into the monitor peering,\nlong I sat there wond\'ring, fearing\nwhile the disk kept churning,\nturning yet to churn some more.\n"Save!" I said, "You cursed mother!\nSave my data from before!"\n\nOne thing did the phosphors answer\nonly this and nothing more, just,\n "Abort, Retry, Ignore?"\nWith my fingers pale and trembling,\nslowly toward the keyboard bending,\nlonging for a happy ending,\nhoping all would be restored,\nPraying for some guarantee,\ntimidly I pressed a key.\nBut on the screen there still persisted,\nwords appearing as before.\nGhastly grim they blinked and taunted,\nhaunted, as my patience wore, saying,\n"Abort, Retry, Ignore?"\n\nThere I sat, distraught, exhausted;\nby my own machine accosted.\nGetting up, I turned away,\nand paced across the office poor.\nAnd then I saw a dreadful sight:\na lightning bolt cut through the night.\n\nA gasp of horror overtook me,\nshook me to my very core.\nThe lightning zapped my previous data,\nlost and gone forevermore. Not even,\n"Abort, Retry, Ignore?"\n',"They told me I can't; so therefore I will.","A foo walked into a bar, took a look arround, and said, \"Hello, World!\"","I like to think of betas as a huge, beautiful wall with a garden arround it. The wall is brick, but has solid concrete in the middle of it. Oh, and there's also a gaping hole in the center that lets the hackers through.","Clippy:\nIt looks like you're trying to boot up your computer. Would you like some help?","Clippy:\nDON'T YOU DARE TELL ME TO SHUTUP! DO YOU KNOW HOW MUCH CRAP I GET? ALL I EVER WANTED TO DO WAS HELP!","I have a cookie!\nCan I have a byte?\nNo!\nWell, can I have a nibble?\nNo.\nCan I have a bit?\nFine.","Help! I'm trapped in the splash factory!","That's not how this works! That's not how any of this works!","Have you gotten the 'if poe where a techie' splash that was an article I c&p'd from the internet? You're better off rebooting if you do.","I'm selling an Early Access table. It only has 3 legs, but I promise I'll add the fourth!","Do you have the system32 virus? You really need to delete that!","This splash describes itself."}--they can't control this from code anyway
+  osStuff.splashes ={"The cake is a lie!","Possibly the first OS with a GUI not to boot to it.",";;","SPLASH!","Top-level coroutine!","TwoOS!","startx... why not starty?","","This text is hard to re\-\-\- nevermind...","New\nline.","I like to put a little coffee in my tea---I mean---ugggh, screwed up that joke.","I like to put a little chocolate in my mil---FFFFFFFFF","The cow goes \"Man, living here for free is great!\"","for i=1,100 do \n  print\"I will not use code in class\"\nend","Out of jokes. ","Blue!!!!","3good5you","In Soviet Russia, Waldo finds YOU!","In capatalist America, bank robs YOU!","makeYouLaugh() --> \"Lol xD\"","\n\n","Turtles and Rectangles dimension in Soup"," ","Infect! 5 days to send me money or I'll wipe the computer, but secretly I already have!","LandLua","EXTERMINATE!","They are fast. Faster than you can belive! DON'T turn your back, DON'T look away, and DON'T blink!\n... good luck.","]os[","Access Denied.","Zoom in 300%! Enhance resultion!","If there are motherboards, are there fatherboards too?","LinusCatTips is a thing...","World, Hello!","jacksonmcneill.ddns.net","Turning-complete? Well, it's almost done!",'IF POE WERE A TECHIE\n\nOnce upon a midnight dreary,\nfingers cramped and vision bleary,\nsystem manuals piled high\nand wasted paper on the floor,\nlonging for the warmth of bed sheets,\nstill I sat there, doing spreadsheets.\n\nHaving reached the bottom line,\nI took a floppy from the drawer.\nTyping with a steady hand,\nI then invoked the "save" command\nand waited for the disk to store,\nonly this and nothing more.\n\nDeep into the monitor peering,\nlong I sat there wond\'ring, fearing\nwhile the disk kept churning,\nturning yet to churn some more.\n"Save!" I said, "You cursed mother!\nSave my data from before!"\n\nOne thing did the phosphors answer\nonly this and nothing more, just,\n "Abort, Retry, Ignore?"\nWith my fingers pale and trembling,\nslowly toward the keyboard bending,\nlonging for a happy ending,\nhoping all would be restored,\nPraying for some guarantee,\ntimidly I pressed a key.\nBut on the screen there still persisted,\nwords appearing as before.\nGhastly grim they blinked and taunted,\nhaunted, as my patience wore, saying,\n"Abort, Retry, Ignore?"\n\nThere I sat, distraught, exhausted;\nby my own machine accosted.\nGetting up, I turned away,\nand paced across the office poor.\nAnd then I saw a dreadful sight:\na lightning bolt cut through the night.\n\nA gasp of horror overtook me,\nshook me to my very core.\nThe lightning zapped my previous data,\nlost and gone forevermore. Not even,\n"Abort, Retry, Ignore?"\n',"They told me I can't; so therefore I will.","A foo walked into a bar, took a look arround, and said, \"Hello, World!\"","I like to think of betas as a huge, beautiful wall with a garden arround it. The wall is brick, but has solid concrete in the middle of it. Oh, and there's also a gaping hole in the center that lets the hackers through.","Clippy:\nIt looks like you're trying to boot up your computer. Would you like some help?","Clippy:\nDON'T YOU DARE TELL ME TO SHUTUP! DO YOU KNOW HOW MUCH CRAP I GET? ALL I EVER WANTED TO DO WAS HELP!","I have a cookie!\nCan I have a byte?\nNo, but you can have a bit!","Help! I'm trapped in the splash factory!","That's not how this works! That's not how any of this works!","Have you gotten the 'if poe where a techie' splash that was an article I c&p'd from the internet? You're better off rebooting if you do.","I'm selling an Early Access table. It only has 3 legs, but I promise I'll add the fourth!","Do you have the system32 virus? You really need to delete that!","This splash describes itself."}--they can't control this from code anyway
 end
 if term.usingNoColor then 
   print"Note - You do not need to use nocolor to run this OS. It natively supports basic computers."
-  sleep(10)
-  print"Here's access to the CraftOS shell so you can remove it."
-  shell.run'/rom/programs/shell'
+  sleep(5)
 elseif term.isColor() then 
   osStuff.backColor = colors.black
   osStuff.textColor=colors.lime
@@ -138,27 +140,39 @@ end
 local routines = {}
 local buffers = {}
 local requests = {}
-local protected = {"main",}
+local protected = {"main","term"}
 local active
-function osStuff.newRoutine(name,funct,bSizex,bSizey)
+function omni.newRoutine(name,funct,buf,bSizex,bSizey)
+  game.l(name)
   if routines[name] then 
     return false,1
   end 
+  game.l("y")
+  if name ~="main" then 
+    setfenv(funct,env)
+  else 
+    setfenv(funct,getfenv())
+  end 
   routines[name] = coroutine.create(funct)
+  
   if (not bSizex) or (not bSizey) then 
     local bSizex,bSizey = term.getSize()
     bSizey=bSizey-1 
   end 
   local a = term.current()
-  buffers[name] = buffer.newBuf(bSizex,bSizey)
-  --first run 
+  if buf then 
+    buffers[name] = buffer.newBuf(bSizex,bSizey)
+  else 
+    buffers[name] = term.current()
+  end 
+   --first run 
   term.redirect(buffers[name])
   local _ 
   _,requests[name]=coroutine.resume(routines[name])
   term.redirect(a)
   return true 
 end 
-function osStuff.killRoutine(name)
+function omni.killRoutine(name)
   for i=1,#protected do 
     if name==protected[i] then 
       return false,1 
@@ -168,7 +182,7 @@ function osStuff.killRoutine(name)
   buffers[name] = nil
   return true
 end 
-function osStuff.getBuffer(name)
+function omni.getBuffer(name)
   for i=1,#protected do 
     if name==protected[i] then 
       return false,1 
@@ -176,17 +190,20 @@ function osStuff.getBuffer(name)
   end 
   return buffers[name] 
 end 
-function osStuff.getRoutineStatus(name)
+function omni.getRoutineStatus(name)
   return coroutine.status(routines[name]) 
 end
-function osStuff.listRoutines()
+function omni.listRoutines()
   local a = {}
   for i,o in pairs(routines) do 
     table.insert(a,i)
   end 
   return a 
 end 
-function osStuff.makeRoutineActive(name,x,y)
+function omni.makeRoutineActive(name,x,y)
+  if (not routines[name]) or (not buffers[name]) then 
+    return printError"Routine did not exist, or its buffer did not exist!"
+  end 
   x,y=x or 1,y or 1
   for i=1,#protected do 
     if name==protected[i] then 
@@ -198,10 +215,12 @@ function osStuff.makeRoutineActive(name,x,y)
   if active then 
     buffers[active].makeInactive()
   end
-  --term.redirect(buffers[name])
+  term.redirect(buffers[name])
   --local native = term.current()
   --function buffers[name].
-  buffers[name].makeActive(x,y)
+  if (buffers[name] or {}).makeActive then 
+    buffers[name].makeActive(x,y)
+  end 
   --buffers[name].isActive = true
   --test
   
@@ -210,16 +229,17 @@ function osStuff.makeRoutineActive(name,x,y)
   active = name 
 end 
 local foucusedEvents = {"key","char","mouse_click","mouse_drag","mouse_scroll",}
-function osStuff.initRoutines()
-  osStuff.xStarted = true 
+function omni.initRoutines()
   local cT = term.current()
   while true do 
     local a = {os.pullEvent()} -- Change to coroutine.yield
     term.redirect(cT)
     --buffers[active].blit(1,1)
     for i=1,#protected do 
+    --  game.l("P "..protected[i])
       if routines[protected[i]] then 
-        coroutine.resume(routines[protected[i]])
+      --  game.l("x "..protected[i])
+        coroutine.resume(routines[protected[i]],unpack(a))
       end 
     end 
     -- User stuff:
@@ -227,7 +247,7 @@ function osStuff.initRoutines()
       a[4]=a[4]-1
     end 
     for i,o in pairs(routines) do 
-      game.l(i.."s "..coroutine.status(routines[i]))
+      --game.l(i.."s "..coroutine.status(routines[i]))-------
       if coroutine.status(routines[active]) == "dead" then 
         --the active routine is dead!
       end 
@@ -235,15 +255,15 @@ function osStuff.initRoutines()
         --term.redirect(cT)
         --game.l(textutils.serialize(buffers[i]))
         term.redirect(buffers[i]) --------
-        game.l("a: "..active)
+        --game.l("a: "..active)
         if active == i then 
-          game.l('1 '..(tostring(requests[i]) or ""))
+          --game.l('1 '..(tostring(requests[i]) or ""))
           if a[1]==(requests[i] or a[1]) then 
             --print"r"
             local _
-            game.l("Resuming routine: "..active)
+           -- game.l("Resuming routine: "..active)
             _,requests[i] = coroutine.resume(routines[i],unpack(a))
-            game.l(tostring(_))
+          --  game.l(tostring(_))
             --print(requests[i])
           end 
         else 
@@ -255,9 +275,17 @@ function osStuff.initRoutines()
               bad = true 
             end 
           end 
-          if not bad then 
+          for k=1,#protected do 
+            if protected[i]==k then
+              bad=true 
+            end
+          end 
+          if (not bad) then 
+            term.redirect(buffers[i])
+    --        game.l("resuming "..i)
             _,requests[i]=coroutine.resume(routines[i],unpack(a))
-            game.l(tostring(_))
+      --      game.l(tostring(_))
+            term.redirect(cT)
           end 
         end 
       end 
@@ -276,7 +304,7 @@ end
 print(fs.combine("/library/lang/",(c or "")))
 local a = loadfile("/"..fs.combine("/library/lang/",(c or "")))
 if type(a) ~="function" then 
-  print"\nWarning: Language file is missing or has errors. The OS will look very weird."
+  print"\nWarning: Language file is missing or has errors. lan.osLookWeird. lan.exampleOfWeird"
   print("Error: "..tostring(a))
   sleep(4)
 end
@@ -284,9 +312,10 @@ if a then
   setfenv(a,lang)
   pcall(a)
 else 
-  print"\nWarning: Language file is missing or has errors. The OS will look very weird."
+  print"\nWarning: Language file is missing or has errors. lan.osLookWeird. lan.exampleOfWeird"
   sleep(4)
 end 
+local lan = setmetatable({},{__index=function(self,input) local res,same = osStuff.g(input) if same then return "lan."..res end return res end })
 function osStuff.g(a) -- This method allows for things like 'sudo.usage'
   local f=loadstring("return lang."..a)
   setfenv(f,{lang=lang})
@@ -294,7 +323,7 @@ function osStuff.g(a) -- This method allows for things like 'sudo.usage'
   if err then 
     return err
   end 
-  return a 
+  return a,true
 end
 function osStuff.p(a)
   print(osStuff.g(a))
@@ -311,12 +340,14 @@ end
 ------------------------------
 --[[~~~Clipboard System~~~]]--
 ------------------------------
-local clipboardStuff 
+local clipboardStuff  = {}
 function osStuff.copyToClipboard(a) 
   if type(a) == "string" then 
-    a = {a}
+    table.insert(clipboardStuff,1,a)
   end 
-  clipboardStuff = a 
+end 
+function osStuff.removeFromClipboard(num)
+  table.remove(clipboardStuff,num)
 end 
 function osStuff.getClipboard(a)
   return clipboardStuff 
@@ -355,6 +386,8 @@ end
 
 --Overwiting printerror to use our colorscheme 
 function printError(txt)
+  --log to console
+  game.e("printError text: "..txt)
   term.setTextColor(osStuff.errorColor)
   print(txt)
   term.setTextColor(osStuff.textColor)
@@ -441,7 +474,7 @@ function osStuff.int()
     noSplash = false 
     osStuff.splashes={"Badwolf."}
   else 
-    osStuff.specialPrint"[os] V0.3"
+    osStuff.specialPrint("[os] V"..tostring(osStuff.version))
   end
   --let's select from one of our fine splashes
   if args[1] ~="nosplash" then
@@ -599,9 +632,9 @@ local function writeMeta(file,name,auth,ftype,times,perm,otherStuff)
     return false 
   end 
   local a = getMetaForFile(file)
-  if isDir(file) then 
+  --[[if isDir(file) then 
     return writeMeta(file.."/osFolderMetadata",name,auth,ftype,time,perm,otherStuff)
-  end 
+  end ]]
   if not a then --creating new 
     if game.inputCheck({file,name,auth,ftype,times,perm,otherStuff},{{"string"},{"string",},{"string",},{"string",},{"table",},{"table"},{"table","nil"}},"osStuff.writeMeta(internal)(new)") then 
       return false 
@@ -898,7 +931,7 @@ function osStuff.open(file,mode,pass)
   if lastTime then 
     if os.time()-lastTime <.02 then
       lastTime = os.time()
-      return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
+      return error(osStuff.g"tooManyPasswords")
     end 
   end  
   if pass == accPass then 
@@ -957,7 +990,179 @@ function osStuff.delete(file,pass)
   lastTime = os.time()
   return "w"
 end
-local function tokenise( ... ) -- Taken from CC's shell
+------------------------------
+--[[Time keeping functions]]--
+------------------------------
+local dif = "5"
+local forward = false 
+local function getRealTime(dif,forward)
+  if forward then 
+    dif = dif.."+hours+from+now"
+  else 
+    dif=dif.."+hours+ago"
+  end 
+  local url = "http://chronic.herokuapp.com/utc/"
+  --^ this is the best thing. ever. returns in plain text, and does not need a developer key. It makes my life so much easier.
+
+  local utc = http.get(url..dif)
+
+  if not utc then return false end
+  utc = utc.readAll()
+  if not utc then return false end 
+  --print(utc)
+  --get these into seperate variables
+  local year = utc:sub(1,utc:find("-")-1)
+  --print(utc:find"-")
+  --print(year)
+  local month = utc:sub(utc:find"-"+1,utc:find("-",utc:find"-"+1)-1)
+  month=month:gsub(" ","")
+  --print(month.."e")
+  local day = utc:sub(utc:find("-",utc:find"-"+1)+1,utc:find(" "))
+  day=day:gsub(" ","")
+  --print(day.."e")
+  local clocktime = utc:sub(utc:find" "+1,utc:find(" ",utc:find" "+1)-1)
+
+  if tonumber(clocktime:sub(1,2)) >= 13 and (not osStuff.miliTime) then
+    clocktime= tostring(tonumber(clocktime:sub(1,2))-12)..string.sub(clocktime,3,#clocktime)
+  end 
+  clocktime=clocktime:gsub(" ","")
+  --print(clocktime.."e")
+  return year,month,day,clocktime
+end 
+local function addsecond(clocktime)
+  local seconds = clocktime:sub(#clocktime-1,#clocktime)
+  seconds:gsub(":"," ")
+  --print(seconds)
+  seconds =seconds+1
+  if seconds > 59 then 
+    --instead of doing any further time calculations, just ask the server again. So, this means the server is asked every minute for the time.
+    return false
+  end
+  
+  local small
+  if seconds <10 then 
+    seconds = tostring(seconds)
+    small = true 
+    seconds = "0"..seconds 
+  end 
+  --print("c "..clocktime:sub(1,#clocktime-2))
+  return clocktime:sub(1,#clocktime-2)..seconds
+end 
+local year,month,day,clocktime
+local function timekeeping()
+  while true do
+    if not clocktime then --if the server went down, we'll keep trying every second... hopefully we're not the cause of its downtime, or it's not going back up anytime soon, lol.
+      year,month,day,clocktime=getRealTime(dif,forward)
+    end  
+    local t = addsecond(clocktime)
+    if t then 
+      clocktime=t 
+    else 
+      year,month,day,clocktime=getRealTime(dif,forward)
+    end 
+    --print("Year "..year.." on the "..day.." of "..month..", "..clocktime)
+    os.queueEvent"clocktick"
+    sleep(1)
+  end  
+end 
+function osStuff.getTime() return year,month,day,clocktime end 
+
+
+--Overwrite the Game-Engine console to work with this
+local gameWritetoConsole = game.writeToConsole
+function game.writeToConsole(txt)
+  return gameWritetoConsole("["..(clocktime or "Clock service not started yet").."] "..txt)
+end 
+game.l = game.writeToConsole 
+function game.writeErrorToConsole(txt)
+  game.writeToConsole("[ERROR] "..txt)
+  return txt 
+end 
+game.e=game.writeErrorToConsole
+
+
+
+
+
+
+
+-------------------
+--[[Misc. stuff]]--
+-------------------
+local function shallowcopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+          copy[orig_key] = orig_value
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+local DONOTENABLE = true -- If this is the update that added the GUI, then this is okay to be true. If it's any later than that at all, tell me. Also tell me to remove this comment afterwards.7
+--IF THIS IS ENABLED BE DEFAULT, THEN I F**KED UP! FOR THE LOVE OF ALL THAT IS PROTECTED, TELL ME!
+local function stillneivecopy(orig)
+  local copy = {}
+  for i,o in pairs(orig) do 
+    if (i~="omni" or DONOTENABLE) then  
+      copy[i] = shallowcopy(o)
+    end 
+  end
+  return copy
+end 
+local runningProgram
+local cur = term.current()
+env = stillneivecopy(_G)
+--env = _G
+
+
+env.os.pullEvent = ospe
+local function run(prg,pargs)
+  pargs = pargs or {}
+  if not prg then 
+    printError(osStuff.g"Nothing"..osStuff.g"noExist")
+  else
+    local prog=env.shell.resolveProgram(prg)
+    runningProgram = prog
+    if prog then 
+      local failed
+      prog,failed = loadfile(prog)
+      if type(prog)=="function" then 
+        setfenv(prog,env)
+        local ok,err = pcall(function() prog(unpack(pargs)) end)
+        if (not ok) and err then 
+          printError(err)
+        end 
+      else 
+        if failed then 
+          printError(failed)
+        end 
+      end 
+    else 
+      printError(input..osStuff.g"noExist")
+    end 
+  end 
+end 
+function env.os.loadAPI(path)
+  local _env = setmetatable({},{__index=env})
+  local pg,err = loadfile(path)
+  if pg then
+    setfenv(pg,_env) 
+    pg()
+  else 
+    printError(err)
+  end
+  local cont = {} 
+  for i,o in pairs(_env) do 
+    cont[i] = o 
+  end 
+  env[fs.getName(path)] = cont
+  return true 
+end 
+local function tokenise( ... ) -- Taken from CC's shell/bios
     local sLine = table.concat( { ... }, " " )
   local tWords = {}
     local bQuoted = false
@@ -973,30 +1178,43 @@ local function tokenise( ... ) -- Taken from CC's shell
     end
     return tWords
 end
-local function shallowcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in pairs(orig) do
-            copy[orig_key] = orig_value
+function os.run( _tEnv, _sPath, ... )
+    local tArgs = { ... }
+    local fnFile, err = loadfile( _sPath )
+    if fnFile then
+        local tEnv = _tEnv
+        --setmetatable( tEnv, { __index = function(t,k) return _G[k] end } )
+        setmetatable( tEnv, { __index = env } )
+        setfenv( fnFile, tEnv )
+        local ok, err = pcall( function()
+            fnFile( unpack( tArgs ) )
+        end )
+        if not ok then
+            if err and err ~= "" then
+                printError( err )
+            end
+            return false
         end
-    else -- number, string, boolean, etc
-        copy = orig
+        return true
     end
-    return copy
+    if err and err ~= "" then
+        printError( err )
+    end
+    return false
 end
-local function stillneivecopy(orig)
-  local copy = {}
-  for i,o in pairs(orig) do 
-    copy[i] = shallowcopy(o)
+
+function env.shell.run( ... )
+  local tWords = tokenise( ... )
+  local sCommand = tWords[1]
+  if sCommand then
+    return run( sCommand, unpack( tWords, 2 ) )
   end
-  return copy
-end 
-local runningProgram
-local cur = term.current()
-local env = stillneivecopy(_G)
-env.os.pullEvent = ospe
+  return false
+end
+local function noSupport() printError"Sorry, [os] does not support multishell shell functions." end 
+env.shell.openTab = noSupport
+env.shell.switchTab = noSupport
+env.lan = lan
 function env.shell.getRunningProgram() return runningProgram end 
 function osStuff.doMain()
   osStuff.doDir()
@@ -1043,36 +1261,47 @@ function osStuff.doMain()
         --start the GUI
         print"not done"
       else 
-        print"The GUI is not supported on basic computers."
+        osStuff.p"noBasicGUI"
       end
     else 
       osStuff.resetClear()
       -- Execute the program
       local pargs = tokenise(input)
-      local prog=shell.resolveProgram(pargs[1])
-      table.remove(pargs,1)
-      if prog then 
-        local failed
-        prog,failed = loadfile(prog)
-        if type(prog)=="function" then 
-          setfenv(prog,env)
-          local ok,err = pcall(prog,unpack(pargs))
-          term.redirect(cur)
-          if (not ok) and err then 
-            printError(err)
+      if not pargs[1] then 
+        printError(osStuff.g"Nothing"..osStuff.g"noExist")
+      else
+        local prog=shell.resolveProgram(pargs[1])
+        runningProgram = prog
+        table.remove(pargs,1)
+        if prog then 
+          local failed
+          prog,failed = loadfile(prog)
+          if type(prog)=="function" then 
+            setfenv(prog,env)
+            local ok,err = pcall(function() prog(unpack(pargs)) end)
+            term.redirect(cur)
+            if (not ok) and err then 
+              printError(err)
+            end 
+          else 
+            if failed then 
+              printError(failed)
+            end 
           end 
         else 
-          if failed then 
-            printError(failed)
-          end 
+          printError(input..osStuff.g"noExist")
         end 
-      else 
-        printError(input.." does not exist")
       end 
       if osStuff.didClear() then 
+        local _,cury = term.getCursorPos()
+        local _,termy = term.getSize()        
         term.setBackgroundColor(osStuff.backColor)
-        term.clear()
-        term.setCursorPos(1,1)
+        for i=cury,termy do           
+          term.setCursorPos(1,i)
+          term.clearLine()
+        end
+
+        term.setCursorPos(1,cury)
       end 
 
 
@@ -1148,7 +1377,14 @@ function osStuff.doMain()
     end
   end
 end
+
 env.osStuff.doMain = osStuff.doMain --doMain would get discluded otherwise.
 if args[4]~="stop" then 
-  osStuff.int()
+  --osStuff.int()
+  omni.newRoutine("term",osStuff.int,false)
+  omni.newRoutine("time",timekeeping,false)--this really doesn't need a buffer
+  omni.makeRoutineActive("time")
+  omni.initRoutines()
 end
+game.l"[OS] Has finished executing. This is NOT supposed to happen!"
+game.l"--the user won't see this, the console.log will never be closed. This is here so they see the above message.--"
