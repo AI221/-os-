@@ -1,20 +1,21 @@
 --By Jackson McNeill, with loose inspiration from the Unix command
+--This program is an example of using lan. instead of osStuff.g. If you use something that doesn't exist, it'll come out as "lan.whatYouPutAfterTheDot".
 local args = {...}
 if not args[1] then 
-  osStuff.p"df.usage"
+  print(lan.df.usage)
   return 
 end 
 args[1]="/"..shell.resolve(args[1])
 if not fs.exists(args[1]) then 
-  printError(args[1]..osStuff.g"noExist")
+  printError(args[1]..lan.noExist)
   return 
 elseif fs.isReadOnly(args[1]) == "noAccess" then 
-  printError(osStuff.g"df.badpriv"..args[1])
+  printError(lan.df.badpriv..args[1])
   return false 
 end 
 local function getSpace(file)
   if fs.isReadOnly(file) =="noAccess" then 
-    print(osStuff.g"df.warnbadpriv1"..file..osStuff.g"df.warnbadpriv2")
+    print(lan.df.warnbadpriv1..file..lan.df.warnbadpriv2)
     return 0
   end 
   local f = fs.open(file,"r")
@@ -33,7 +34,7 @@ local function getFolder(folder)
     else 
       r=r+getSpace(folder.."/"..fls[i])
       if not r then  
-        printError(osStuff.g"df.errorTotalSpace1")
+        printError(lan.df.errorTotalSpace1)
         return 
       end 
     end
@@ -47,7 +48,7 @@ if fs.isDir(args[1]) then
 else 
   total = getSpace(args[1])
   if not total then 
-    printError(osStuff.g"df.errorTotalSpace2")
+    printError(lan.df.errorTotalSpace2)
     return 
   end 
 end 
