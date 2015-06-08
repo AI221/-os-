@@ -59,12 +59,7 @@ if type(program) == "function" then
 			p=f.readAll()
 			f.close()
 		else 
-			error(osStuff.g"noPermExist")
-		end 
-		osStuff.delete(a,pass)
-		f = osStuff.open(b,"w",pass)
-		if f then 
-			f.write(p)
+ 			f.write(p)
 			f.close()
 		else
 			error(osStuff.g"noPerm")
