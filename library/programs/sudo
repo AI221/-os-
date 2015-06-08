@@ -58,9 +58,6 @@ if type(program) == "function" then
 		if f then 
 			p=f.readAll()
 			f.close()
-		else 
- 			f.write(p)
-			f.close()
 		else
 			error(osStuff.g"noPerm")
 		end 
