@@ -22,51 +22,73 @@ elseif f == "w" then
 	return 
 end 
 local program = f.readAll()
+--reload IO
+program=" os.unloadAPI'io' os.loadAPI'rom/apis/io' "..program
 f.close()
+local function shallowcopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+	        if orig_key ~="fs" then 
+	          copy[orig_key] = orig_value
+	        else 
+	        	game.l"fs"
+	        end
+	    end 
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+--make program env
+local env = shallowcopy(_G)
+env.fs={}
+--env.io=""
+function env.fs.open(a,b)
+    return osStuff.open(a,b,pass)
+end 
+function env.os.loadAPI(path)
+  local _env = setmetatable({},{__index=env})
+  local f=osStuff.open(path,"r",pass)
+  if not f then return false end 
+  local _prog = f.readAll()
+  f.close()
+  local pg,err = loadstring(_prog)
+  if pg then
+    setfenv(pg,_env) 
+    pg()
+  else 
+    printError(err)
+  end
+  local cont = {} 
+  for i,o in pairs(_env) do 
+    cont[i] = o 
+  end 
+  env[fs.getName(path)] = cont
+  return true 
+end 
+function env.os.unloadAPI(name)
+    env[name]=nil 
+end 
+function env.fs.move(a,b)
+    return osStuff.move(a,b,pass)
+end 
+function env.fs.copy(a,b)
+    return osStuff.copy(a,b,pass)
+end 
+function env.fs.delete(a)
+    return osStuff.delete(a,pass)
+end 
+env.lan = lan
+function env.shell.getRunningProgram() return shell.resolveProgram(args[1]) end --won't work
+env.fs.isReadOnly = osStuff.sudoReadOnly
 --Load the file as a function 
 program = loadstring(program)
 if type(program) == "function" then 
-	-- Create a table containing old fs values
-	local oldfs = {}
-	for key,value in pairs(fs) do 
-		oldfs[key] = value 
-	end 
 	-- We override shell.getRunningProgram so 
-	local grp = shell.getRunningProgram
-	function fs.open(a,b)
-		return osStuff.open(a,b,pass)
-	end 
-	function fs.copy(a,b)
-		local f =osStuff.open(a,"r",pass)
-		if f then 
-			a=f.readAll()
-			f.close()
-		else 
-			error(osStuff.g"noPermExist")
-		end 
-		f = osStuff.open(b,"w",pass)
-		if f then 
-			f.write(a)
-			f.close()
-		else 
-			error(osStuff.g"noPerm")
-		end 
-	end 
-	function fs.move(a,b)
-		local f =osStuff.open(a,"r",pass)
-		local p
-		if f then 
-			p=f.readAll()
-			f.close()
-		else
-			error(osStuff.g"noPerm")
-		end 
-	end 
-	function fs.delete(a)
-		return osStuff.delete(a,pass)
-	end 
-	function shell.getRunningProgram() return shell.resolveProgram(args[1]) end 
-	fs.isReadOnly = osStuff.sudoReadOnly
+
 	--[[function env.loadfile(path)
 		print"loadfile"
 		local file = env.fs.open(path,"r")
@@ -83,14 +105,22 @@ if type(program) == "function" then
 	end ]]
 	--[[local env = getfenv()
 	setfenv(program,env)]]
-	osStuff.isSudo = true
+	env.osStuff.isSudo = true--won't work
+    -- Go through stuff not covered by all this
+    for key,value in pairs(fs) do 
+        if not env.fs[key] then 
+            env.fs[key] = value 
+            game.l(key)
+        end 
+    end 
+    setfenv(program,env)
 	local ok,err = pcall(program, unpack(args, 2) )
 	if not ok then 
 		printError(err)
 	end 
-	for key,value in pairs(oldfs) do 
+	--[[for key,value in pairs(oldfs) do 
 		fs[key] = value 
-	end 
+	end ]]
 else 
 	printError(program)
 end 
