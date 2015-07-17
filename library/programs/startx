@@ -256,7 +256,7 @@ end
 osStuff.newDaemon(menu,"menu")
 omni.makeActive("menud")
 omni.legacyMakeActive("desktopApp")
-shell.run'spwnR'
+--shell.run'spwnR'
 while true do coroutine.yield() end --hang the term
 
 
