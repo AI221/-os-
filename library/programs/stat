@@ -16,26 +16,35 @@ if not meta then
   return 
 end 
 local _d = meta.timestamp.accessed
-local aday = osStuff.g"Nil"
-local atime = osStuff.g"Nil"
+local aday 
+local atime 
+local amonth
 if _d then 
-  aday = string.sub(_d,1,string.find(_d,",")-1)
-  atime = string.sub(_d,string.find(_d,",")+1,#_d)
+  aday,amonth,atime = osStuff.seperateTime(_d)
 end 
+aday=aday or lan.Nil 
+atime=atime or lan.Nil 
+amonth=amonth or lan.Nil
 _d = meta.timestamp.modified
-local mday = osStuff.g"Nil"
-local mtime = osStuff.g"Nil"
+local mday
+local mtime
+local mmonth
 if _d then 
-  mday = string.sub(_d,1,string.find(_d,",")-1)
-  mtime = string.sub(_d,string.find(_d,",")+1,#_d)
+  mday,mmonth,mtime = osStuff.seperateTime(_d)
 end 
+mday = mday or lan.Nil
+mtime = mtime or lan.Nil
+mmonth = mmonth or lan.Nil
 _d = meta.timestamp.created
-local cday = osStuff.g"Nil"
-local ctime = osStuff.g"Nil"
+local cday 
+local ctime
+local cmonth 
 if _d then 
-  cday = string.sub(_d,1,string.find(_d,",")-1)
-  ctime = string.sub(_d,string.find(_d,",")+1,#_d)
+  cday,cmonth,ctime = osStuff.seperateTime(_d)
 end 
+cday = cday or lan.Nil
+ctime=ctime or lan.Nil 
+cmonth=cmonth or lan.Nil
 local function nWrite(t)
 	term.setTextColor(osStuff.textColor)
 	write(t)
@@ -72,14 +81,20 @@ tWrite(meta.author or osStuff.g"Nil")
 nWrite(osStuff.g"stat.type")
 tWrite(meta.type or osStuff.g"Nil")
 nWrite(osStuff.g"stat.cnd")
+mWrite(cmonth)
+nWrite(lan.stat.day)
 mWrite(cday)
 nWrite(osStuff.g"stat.time")
 tWrite(ctime)
 nWrite(osStuff.g"stat.lmd")
+mWrite(mmonth)
+nWrite(lan.stat.day)
 mWrite(mday)
-nWrite(osStuff.g"stat.time")
+nWrite(lan.stat.time)
 tWrite(mtime)
 nWrite(osStuff.g"stat.lad")
+mWrite(amonth)
+nWrite(lan.stat.day)
 mWrite(aday)
 nWrite(osStuff.g"stat.time")
 tWrite(atime)
@@ -104,7 +119,7 @@ if prms then
 else 
 	printPerms(osStuff.g"stat.evry1",2)
 end 
-
+tWrite"*Admin permissions mean nothing, they're always read/write"
 
 
 
