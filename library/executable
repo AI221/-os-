@@ -1,7 +1,37 @@
---  ¥
+--[[
+if metadata is having issue,ln 841 may be of interest, recent change there that I havn't tested well
+
+]]
+--[[
+POOR FIXES: 
+
+These are the approx. ln numbers for fixes that should probably be redone
+
+970
+
+
+
+
+]]
+--[[
+s=textutils.serialize
+function textutils.serialize(a)
+  for i,o in pairs(a) do 
+    print(i) print(o) print() os.pullEvent"key"
+  end 
+  return s(a)
+  
+end ]]
+
+--  Â¥
 --load game-engine
 local ospe=os.pullEvent
 local env 
+--[[function game.l() end 
+game.e = game.l 
+game.writeToConsole = game.l 
+game.writeErrorToConsole = game.l ]]
+
 os.pullEvent = coroutine.yield
 os.loadAPI"/Game-Engine/redirect"
 os.loadAPI"/Game-Engine/game"
@@ -10,7 +40,11 @@ osStuff.settings = {}
 osStuff.settings.useAsciiPointer = false
 osStuff.settings.capDirs = true 
 osStuff.settings.useDash = true
-osStuff.version = 0.4
+osStuff.settings.timeDif = 5
+osStuff.settings.timeDifPlus = false 
+osStuff.settings.shortClock = true
+osStuff.settings.taskSpace=2
+osStuff.version = 0.5
 osStuff.os = "[os]"
 osStuff.TEMP = "»"
 _G.omni = {} -- Omni is for things that can't be trusted unless the user permits, or for the OS itself. They have access to everything, hence the name "omni"
@@ -35,6 +69,12 @@ elseif term.isColor() then
   osStuff.dirColor = colors.green
   osStuff.clearBorderColor = colors.lightGray
   osStuff.errorColor = colors.red
+  --gui colors
+  osStuff.settings.gc = {}
+  osStuff.settings.gc.menuBColor = colors.lightBlue
+  osStuff.settings.gc.menuTColor = colors.gray
+  osStuff.settings.gc.borderBColor = colors.lightBlue
+  osStuff.settings.gc.borderTColor = colors.gray 
 else
   osStuff.backColor = colors.white
   osStuff.textColor = colors.black 
@@ -44,8 +84,29 @@ else
   osStuff.clearBorderColor = colors.black
   osStuff.errorColor = colors.black
 end
+
+
+
+
+
+
+
+--1.7 update stuff
+local oldGFenv = getfenv
+local oldSFenv = setfenv
+function getFenv(targ)
+  game.e"Depreciated function getFenv called" 
+  return oldGFenv(targ)
+end 
+function setFenv(targ,env)
+  game.e"Depreciated function setFenv called" 
+  return oldSFenv(targ,env)
+end 
+
+
+
 function osStuff.specialPrint(text,time)--fancy name printing
-  text = text or ""
+  --[[text = text or ""
   time = time or 0
   for i=1,#text do
     --get the cursor y pos
@@ -70,8 +131,8 @@ function osStuff.specialPrint(text,time)--fancy name printing
   end
   term.setBackgroundColor(osStuff.backColor or 1)
   local _,y=term.getCursorPos()
-  term.setCursorPos(term.getCursorPos()-1,y)
-  print" "
+  term.setCursorPos(term.getCursorPos()-1,y) 
+  print" "]]print(text)
 end
 function osStuff.doDir()
   term.setBackgroundColor(osStuff.backColor)
@@ -98,7 +159,9 @@ function osStuff.doDir()
     write"» "
     term.setTextColor(osStuff.textColor)
   else 
-    --write" "
+    term.setTextColor(osStuff.commandColor)
+    write"> "
+    term.setTextColor(osStuff.textColor)
   end
 end
 function osStuff.centerWrite(text)
@@ -110,7 +173,8 @@ function osStuff.centerPrint(text)
   osStuff.centerWrite(text)
   print()
 end
-function osStuff.giveFenv(program)
+function osStuff.giveFenv(program)--depreciated, soon to be removed
+  game.e"osStuff.giveFenv is depreciated and may be removed soon."
   local f=getfenv()
   return setfenv(program,f)
 end
@@ -136,20 +200,24 @@ function help.topics()
   end 
   return b
 end 
--- Coroutine Managment functions
+-- Coroutine Management functions
 local routines = {}
 local buffers = {}
+local oriBuffers = {}
 local requests = {}
-local protected = {"main","term"}
-local active
-function omni.newRoutine(name,funct,buf,bSizex,bSizey)
+local active = {}
+local props = {}
+local taskOrientation = {}
+local curRout
+local natTerm = term.current()
+function omni.newRoutine(name,funct,buf,bSizex,bSizey,dontrunFirstTime)
   game.l(name)
   if routines[name] then 
     return false,1
   end 
   game.l("y")
   if name ~="main" then 
-    setfenv(funct,env)
+    setfenv(funct,env)--I need a better way of doing this...
   else 
     setfenv(funct,getfenv())
   end 
@@ -161,34 +229,32 @@ function omni.newRoutine(name,funct,buf,bSizex,bSizey)
   end 
   local a = term.current()
   if buf then 
-    buffers[name] = buffer.newBuf(bSizex,bSizey)
+    buffers[name] = buffer.newBuf(bSizex,bSizey,natTerm)
+    oriBuffers[name] = buffers[name]
   else 
     buffers[name] = term.current()
   end 
    --first run 
-  term.redirect(buffers[name])
-  local _ 
-  _,requests[name]=coroutine.resume(routines[name])
-  term.redirect(a)
+   if not dontrunFirstTime then 
+     local prev = curRout
+     curRout = name 
+    term.redirect(buffers[name])
+    local _ 
+    _,requests[name]=coroutine.resume(routines[name])
+    term.redirect(a)
+  end 
   return true 
 end 
-function omni.killRoutine(name)
-  for i=1,#protected do 
-    if name==protected[i] then 
-      return false,1 
-    end 
-  end 
+function omni.killRoutine(name)--recode, will crash atm
   routines[name] = nil
   buffers[name] = nil
   return true
 end 
 function omni.getBuffer(name)
-  for i=1,#protected do 
-    if name==protected[i] then 
-      return false,1 
-    end 
-  end 
   return buffers[name] 
+end 
+function omni.getOriBuffer(name)
+  return oriBuffers[name]
 end 
 function omni.getRoutineStatus(name)
   return coroutine.status(routines[name]) 
@@ -200,35 +266,142 @@ function omni.listRoutines()
   end 
   return a 
 end 
-function omni.makeRoutineActive(name,x,y)
-  if (not routines[name]) or (not buffers[name]) then 
-    return printError"Routine did not exist, or its buffer did not exist!"
-  end 
-  x,y=x or 1,y or 1
-  for i=1,#protected do 
-    if name==protected[i] then 
-      return false,1 
+local lastActive
+function omni.legacyMakeActive(name)--*not* depreciated 
+  if lastActive then 
+    active[lastActive] = false
+    if oriBuffers[lastActive] then 
+      if oriBuffers[lastActive].makeInactive then 
+        game.l("deactiv buf"..lastActive)
+        oriBuffers[lastActive].makeInactive() 
+      end 
     end 
   end 
-  local a = term.current()
-  --make last one no longer active
-  if active then 
-    buffers[active].makeInactive()
-  end
-  term.redirect(buffers[name])
-  --local native = term.current()
-  --function buffers[name].
-  if (buffers[name] or {}).makeActive then 
-    buffers[name].makeActive(x,y)
+  lastActive =name 
+  active[name] = true 
+  if oriBuffers[name] then
+    if oriBuffers[name].makeActive then 
+      oriBuffers[name].makeActive() 
+    end 
   end 
-  --buffers[name].isActive = true
-  --test
-  
-  --print'Hello,World!'
-  --term.redirect(a)
-  active = name 
 end 
-local foucusedEvents = {"key","char","mouse_click","mouse_drag","mouse_scroll",}
+function omni.returnLegacyActive() 
+  return lastActive
+end 
+function omni.makeActive(name)
+  active[name] = true 
+  if oriBuffers[name] then 
+    if oriBuffers[name].makeActive then 
+      oriBuffers[name].makeActive() 
+    end 
+  end 
+end 
+local foucusedEvents = {key =true,char=true,mouse_click=true,mouse_drag=true,mouse_scroll=true,menu_press=true,key_up=true,mouse_up=true}--I'm pretty sure this is spelled wrong
+
+--[[
+initRoutines brief:
+If the coroutine is an active one or if it isn't active, but its event doesn't require it to be, proceed
+If it is asking for this event, proceed
+If the event is dealing with the mouse, do next
+Check if it should be getting the mouse events, and if so, adjust them accordingly.
+
+Resume the routine, collecting the next event it wants, and giving it the current events.
+Repeat.
+]]
+function omni.initRoutines()
+  local requests,natTerm,ok,err = {},term.current()
+  game.l"Routine service starting NOW"
+  while true do 
+    local evts = {coroutine.yield()}
+    for name,routineCo in pairs(routines) do 
+      --game.l(name)
+      if (active[name]) or (not foucusedEvents[evts[1]]) then
+        --game.l"1"
+        if (requests[name] ==evts[1]) or (not requests[name]) then 
+          --game.l"2"
+          if coroutine.status(routines[name]) ~="dead" then 
+            curRout = name
+            term.redirect(buffers[name])
+            ok,requests[name] = coroutine.resume(routines[name],unpack(evts))
+            --game.l("r "..name.." "..tostring(requests[name]).."+"..tostring(test))
+            if not ok then 
+              game.l("Routine "..name.." encountered error "..requests[name])
+            end 
+          else --RIP in peace
+            --routines[name] = nil 
+            game.l("Routine "..name.."("..tostring(requests[name])..") died. *NOT* GC'd.") game.l"a"
+          end 
+        end 
+      end 
+    end 
+  end 
+end 
+local termx,termy=term.getSize()
+function osStuff.spawnApp(name,funct,taskBackColor,taskTextColor,taskText) 
+  name=name.."App"
+  while routines[name] do 
+    name=name.."|"
+  end 
+  omni.newRoutine(name,funct,true,termx,termy-1,true)
+  buffers[name].setActivePos(1,2)
+  props[name] = {}
+  props[name].bufLocx = 1
+  props[name].bufLocy = 2
+  props[name].taskBackColor = taskBackColor
+  props[name].taskTextColor = taskTextColor
+  props[name].taskText = taskText
+  props[name].type = 1--1 = fullscreen(ish) tabbed 
+  props[name].menu = {}
+  taskOrientation[#taskOrientation+1] = name
+  local prev,a = curRout,term.current()
+  curRout = name 
+  term.redirect(buffers[name])
+  local _ 
+  _,requests[name]=coroutine.resume(routines[name])
+  term.redirect(a)
+  os.queueEvent"appSpawned"
+  return name
+end 
+function osStuff.updateMenu(menutable)
+  props[curRout].menu = menutable
+  os.queueEvent"menu_update"
+end 
+function osStuff.returnTaskstuffs()
+  return props,taskOrientation
+end 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--[[ye olde systeme
 function omni.initRoutines()
   local cT = term.current()
   while true do 
@@ -236,10 +409,12 @@ function omni.initRoutines()
     term.redirect(cT)
     --buffers[active].blit(1,1)
     for i=1,#protected do 
-    --  game.l("P "..protected[i])
-      if routines[protected[i]] then 
-      --  game.l("x "..protected[i])
-        coroutine.resume(routines[protected[i]],unpack(a))
+      game.l("P "..protected[i])
+      if routines[protected[i] ] then 
+        game.l("x "..protected[i])
+        if a[1] == (requests[protected[i] ] or a[1]) then 
+          requests[protected[i] ] = coroutine.resume(routines[protected[i] ],unpack(a))
+        end 
       end 
     end 
     -- User stuff:
@@ -247,23 +422,22 @@ function omni.initRoutines()
       a[4]=a[4]-1
     end 
     for i,o in pairs(routines) do 
-      --game.l(i.."s "..coroutine.status(routines[i]))-------
+      game.l(i.."s "..coroutine.status(routines[i]))-------
       if coroutine.status(routines[active]) == "dead" then 
         --the active routine is dead!
       end 
       if i~=protected[i] and coroutine.status(routines[i]) == "suspended" then 
         --term.redirect(cT)
-        --game.l(textutils.serialize(buffers[i]))
         term.redirect(buffers[i]) --------
-        --game.l("a: "..active)
+        game.l("a: "..active)
         if active == i then 
-          --game.l('1 '..(tostring(requests[i]) or ""))
+          game.l('1 '..(tostring(requests[i]) or ""))
           if a[1]==(requests[i] or a[1]) then 
             --print"r"
             local _
-           -- game.l("Resuming routine: "..active)
+            game.l("Resuming routine: "..active)
             _,requests[i] = coroutine.resume(routines[i],unpack(a))
-          --  game.l(tostring(_))
+            game.l(tostring(_))
             --print(requests[i])
           end 
         else 
@@ -280,11 +454,14 @@ function omni.initRoutines()
               bad=true 
             end
           end 
+          if a[1]~=(requests[i] or "") then 
+            bad=true 
+          end 
           if (not bad) then 
             term.redirect(buffers[i])
-    --        game.l("resuming "..i)
+            game.l("resuming "..i)
             _,requests[i]=coroutine.resume(routines[i],unpack(a))
-      --      game.l(tostring(_))
+            game.l(tostring(_))
             term.redirect(cT)
           end 
         end 
@@ -292,6 +469,8 @@ function omni.initRoutines()
     end 
   end 
 end 
+--]]
+
 --lang system:
 local lang={}
 --run the language file 
@@ -302,28 +481,31 @@ if b then
   b.close()
 end
 print(fs.combine("/library/lang/",(c or "")))
-local a = loadfile("/"..fs.combine("/library/lang/",(c or "")))
+local a = loadfile("/"..fs.combine("/library/lang/",(c or "")),lang)
 if type(a) ~="function" then 
   print"\nWarning: Language file is missing or has errors. lan.osLookWeird. lan.exampleOfWeird"
   print("Error: "..tostring(a))
   sleep(4)
 end
 if a then 
-  setfenv(a,lang)
-  pcall(a)
+  local ok,err=pcall(a)
+  if not ok and err then 
+    print("language file error:"..err)
+    sleep(5)
+  end 
 else 
   print"\nWarning: Language file is missing or has errors. lan.osLookWeird. lan.exampleOfWeird"
   sleep(4)
 end 
 local lan = setmetatable({},{__index=function(self,input) local res,same = osStuff.g(input) if same then return "lan."..res end return res end })
 function osStuff.g(a) -- This method allows for things like 'sudo.usage'
-  local f=loadstring("return lang."..a)
-  setfenv(f,{lang=lang})
+  local _langenv = {lang=lang}
+  local f=load("return lang."..a,"langReturn", "t",_langenv)
   local ok,err = pcall(f)
   if err then 
     return err
   end 
-  return a,true
+  return a
 end
 function osStuff.p(a)
   print(osStuff.g(a))
@@ -393,17 +575,8 @@ function printError(txt)
   term.setTextColor(osStuff.textColor)
 end 
 
-
-
-
---settings
-if fs.exists"/library/settings" then 
-  shell.run"/library/settings"
-end 
-
-
 --Part 2: 
---¥
+--Â¥
 --[[
 ARgS:
 1 - "nosplash" for no splash
@@ -455,6 +628,23 @@ function osStuff.resetClear() didClear = false end
 local accType,accPass
 local open = fs.open 
 function osStuff.int()
+  game.quit()
+  os.loadAPI"Game-Engine/game"--this is to fix issues with term.redirect() inside game-engine, aswell as get it into the correct environment
+  --Overwrite the Game-Engine console to work with this
+  local gameWritetoConsole = game.writeToConsole
+  function game.writeToConsole(txt)
+    local year,month,day,clocktime,pm = osStuff.getTime()
+    return gameWritetoConsole("["..(clocktime or "Clock service not started yet").."] "..txt)
+  end 
+  game.l = game.writeToConsole 
+  function game.writeErrorToConsole(txt)
+    game.writeToConsole("[ERROR] "..txt)
+    return txt 
+  end 
+  game.e=game.writeErrorToConsole
+  game.l"~~Console service restarted~~"
+  osStuff.loadSettings()
+  sleep(0)
   term.setBackgroundColor(osStuff.backColor or 1)
   term.setTextColor(osStuff.textColor or 1)
   term.clear()
@@ -493,6 +683,7 @@ function osStuff.int()
     accType = err
     accPass = pss
     if not ok then
+      print"Could not open library/pswd. Hanging."
       while true do 
         coroutine.yield() 
       end 
@@ -505,7 +696,7 @@ function osStuff.int()
     f = a.readAll() 
     a.close() 
   end 
-  print(f or "")
+  print(f or "a")
   if r==3 then 
     print"Badwolf badwolf to badwolf the badwolf."
   elseif r==2 then 
@@ -515,7 +706,6 @@ function osStuff.int()
   else
     print"Run startx to start the GUI."
   end 
-  
   if runProg then 
     pcall(function() shell.run(runProg) end)
   end 
@@ -528,6 +718,96 @@ function osStuff.getDir(program)
   local remove = #fs.getName(program)
   return string.sub(program,1,#program-remove)
 end 
+------------------------------
+--[[Time keeping functions]]--
+------------------------------
+local function getRealTime(dif,forward)
+  if forward then 
+    dif = dif.."+hours+from+now"
+  else 
+    dif=dif.."+hours+ago"
+  end 
+  local url = "http://chronic.herokuapp.com/utc/"
+  --^ this is the best thing. ever. returns in plain text, and does not need a developer key. It makes my life so much easier.
+
+  local utc = http.get(url..dif)
+
+  if not utc then return false end
+  utc = utc.readAll()
+  if not utc then return false end 
+  --print(utc)
+  --get these into seperate variables
+  local year = utc:sub(1,utc:find("-")-1)
+  --print(utc:find"-")
+  --print(year)
+  local month = utc:sub(utc:find"-"+1,utc:find("-",utc:find"-"+1)-1)
+  month=month:gsub(" ","")
+  --print(month.."e")
+  local day = utc:sub(utc:find("-",utc:find"-"+1)+1,utc:find(" "))
+  day=day:gsub(" ","")
+  --print(day.."e")
+  local clocktime = utc:sub(utc:find" "+1,utc:find(" ",utc:find" "+1)-1)
+  local pm
+  if tonumber(clocktime:sub(1,2)) >= 13 and (not osStuff.miliTime) then
+    clocktime= tostring(tonumber(clocktime:sub(1,2))-12)..string.sub(clocktime,3,#clocktime)
+    pm=true
+  end 
+  clocktime=clocktime:gsub(" ","")
+  --print(clocktime.."e")
+  return year,month,day,clocktime,pm
+end 
+local function addsecond(clocktime)
+  local seconds = clocktime:sub(#clocktime-1,#clocktime)
+  seconds:gsub(":"," ")
+  --print(seconds)
+  seconds =seconds+1
+  if seconds > 59 then 
+    --instead of doing any further time calculations, just ask the server again. So, this means the server is asked every minute for the time.
+    return false
+  end
+  
+  local small
+  if seconds <10 then 
+    seconds = tostring(seconds)
+    small = true 
+    seconds = "0"..seconds 
+  end 
+  --print("c "..clocktime:sub(1,#clocktime-2))
+  return clocktime:sub(1,#clocktime-2)..seconds
+end 
+local year,month,day,clocktime,pm
+local function timekeeping()
+  while true do
+    if not clocktime then --if the server went down, we'll keep trying every second... hopefully we're not the cause of its downtime, or it's not going back up anytime soon, lol.
+      year,month,day,clocktime,pm=getRealTime(osStuff.settings.timeDif,osStuff.settings.timeDifPlus)
+    else
+      local t = addsecond(clocktime)
+      if t then 
+        clocktime=t 
+      else 
+        year,month,day,clocktime,pm=getRealTime(osStuff.settings.timeDif,osStuff.settings.timeDifPlus)
+      end 
+      --print("Year "..year.." on the "..day.." of "..month..", "..clocktime)
+      os.queueEvent"clocktick"
+    end 
+    sleep(1)
+  end  
+end 
+function osStuff.getTime() return year,month,day,clocktime,pm end 
+function osStuff.seperateTime(_d)
+  if type(_d) ~="string" then return "6:66","6:66","6:66" end 
+  return string.sub(_d,1,string.find(_d,",")-1),string.sub(_d,string.find(_d,",")+2,string.find(_d,",",string.find(_d,",")+1)-1),string.sub(_d,string.find(_d,",",string.find(_d,",")+1)+2,#_d) 
+end 
+
+
+
+
+
+
+
+
+
+
 --meta stuff, based of off lyqyd's code @ http://www.computercraft.info/forums2/index.php?/topic/18646-
 --modifications to standard found @ http://jacksonmcneill.ddns.net/[os]_meta
 -- Create local references to fs functions before they are modified
@@ -554,16 +834,36 @@ local sleep = sleep
 --Create a reference to os.time() on the last password attempt
 local lastTime
 
+--Settings stuff:
+function osStuff.loadSettings()
+  --open the file
+  local f = open("library/settings","r")
+  if not f then return false end 
+  local fle = f.readAll()
+  f.close()
+  if not fle then return false end 
+  fle = textutils.unserialize(fle)
+  if not fle then return false end 
+  print"y"
+  for i,o in pairs(osStuff.settings) do 
+    --[[game.l(tostring(i))
+    game.l("s "..tostring(fle[i]))]]
+    if fle[i] ~= nil then 
+      osStuff.settings[i] = fle[i]
+    end 
+  end
+end 
+osStuff.loadSettings()
 
 local function parseMeta(metaPath) -- Function by Lyqyd
   if exists(metaPath) then
     local handle = open(metaPath, "r")
     if handle then
       local data = {}
-      local fn, err = loadstring(handle.readAll())
+      local fn, err = load(handle.readAll(),"metaParseRead","t",data)
       handle.close()
       if fn then
-        setfenv(fn, data)
+        --setfenv(fn, data) ^^ replaccement
         local success, err = pcall(fn)
         if success then
           return data
@@ -579,7 +879,7 @@ local function parseMeta(metaPath) -- Function by Lyqyd
   else
     return nil, "no metadata found"
   end
-end
+end 
 function osStuff.getMetadataForFile(path) -- Function by lqyqd
   return parseMeta(combine(".meta", path))
 end
@@ -668,6 +968,8 @@ local function writeMeta(file,name,auth,ftype,times,perm,otherStuff)
 
   --write it
   local c =""
+  --1.7.4 poor fix:
+  a._ENV = nil 
   for i,o in pairs(a) do 
     if type(o)=="string" then 
       c=c..i.." = '"..o.."'\n"
@@ -676,7 +978,7 @@ local function writeMeta(file,name,auth,ftype,times,perm,otherStuff)
     else 
       return game.e("Unexpected variable type while piecing together string: "..type(o))
     end 
-  end 
+  end
   --game.l(c) ----debug
   c=c.."\n"..(otherStuff or "")
   local b = open(combine(".meta", file),"w")
@@ -849,9 +1151,9 @@ function fs.open(file,mode)
       }
     else 
       if open(file,"r") then 
-        writeMeta(file,nil,nil,nil,{modified = os.day()..", "..textutils.formatTime(os.time(),true)})
+        writeMeta(file,nil,nil,nil,{modified = (month or "ERR")..", "..(day or "ERR")..", "..(clocktime or "ERR")})
       else 
-        writeMeta(file,nil,nil,nil,{created = os.day()..", "..textutils.formatTime(os.time(),true)})
+        writeMeta(file,nil,nil,nil,{created = (month or "ERR")..", "..(day or "ERR")..", "..(clocktime or "ERR")})
       end
       return open(file,mode)
     end
@@ -865,7 +1167,7 @@ function fs.open(file,mode)
       } 
       return rtn
     else 
-      writeMeta(file,nil,nil,nil,{accessed = os.day()..", "..textutils.formatTime(os.time(),true)}) -- If they overwrite this, they will achieve nothing.
+      writeMeta(file,nil,nil,nil,{accessed = (month or "ERR")..", "..(day or "ERR")..", "..(clocktime or "ERR")}) -- If they overwrite this, they will achieve nothing.
       return open(file,mode)
     end 
   elseif mode =="rb" then 
@@ -926,163 +1228,66 @@ function fs.delete(a)
   delete( fs.combine( ".meta" , a ) )
   return delete(a) 
 end
---Accessing files with current accounts permission: 
-function osStuff.open(file,mode,pass)
+local function check(file,mode,pass)
+  game.l(file )
   if lastTime then 
     if os.time()-lastTime <.02 then
       lastTime = os.time()
+      game.l"e"
       return error(osStuff.g"tooManyPasswords")
     end 
   end  
   if pass == accPass then 
     -- Do they have access?
-    local b = getMetaForFile(file)
-    if b then 
-      if b.permissions then 
-        if b.permissions[accType] then --we let them off if there's no perms set
-          if b.permissions[accType] ~= 2 then 
-            if not ( mode ~="a" and mode ~="w" and b.permissions[accType] == 1 ) then 
-              return false,game.e"You do not have permission to access this file!"
-            end 
-          end
-        end 
+    if accType ~="admin" then
+    game.l"n" 
+      local b = getMetaForFile(file)
+      if b then 
+        if b.permissions then 
+          if b.permissions[accType] then --we let them off if there's no perms set
+            if b.permissions[accType] ~= 2 then 
+              if not ( mode ~="a" and mode ~="w" and b.permissions[accType] == 1 ) then 
+                return false,game.e"You do not have permission to access this file!"
+              end 
+            end
+          end 
+        end  
       end 
-    end  
-    --Are they trying to access metadata as a non-admin?
-    if accType ~= "admin" and string.sub(resolve(file),1,6) == ".meta/"  then 
-      lastTime = os.time()
-      return "w"
+      --Are they trying to access metadata as a non-admin?
+      if string.sub(resolve(file),1,6) == ".meta/"  then 
+        lastTime = os.time()
+        return "w"
+      end 
     end 
+    game.l"Y"
+    return true
+  end 
+  lastTime = os.time()
+  return "w"
+end
+function osStuff.open(file,mode,pass)
+  game.l("o "..file)
+  if check(file,mode,pass) ==true then
     return open(file,mode)
   end 
-  lastTime = os.time()
-  return "w"
-end
+end  
+
 -- A c&p'd function
 function osStuff.delete(file,pass)
-  if lastTime then 
-    if os.time()-lastTime <.02 then
-      lastTime = os.time()
-      return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
-    end 
-  end  
-  if pass == accPass then 
-    -- Do they have access?
-    local b = getMetaForFile(file)
-    if b then 
-      if b.permissions then 
-        if b.permissions[accType] then --we let them off if there's no perms set
-          if b.permissions[accType] ~= 2 then 
-            if not ( mode ~="a" and mode ~="w" and b.permissions[accType] == 1 ) then 
-              return false,game.e"You do not have permission to access this file!"
-            end 
-          end
-        end 
-      end 
-    end  
-    --Are they trying to access metadata as a non-admin?
-    if accType ~= "admin" and string.sub(resolve(file),1,6) == ".meta/"  then 
-      lastTime = os.time()
-      return "w"
-    end 
+  if check(file,"w",pass) ==true then
     return delete(file)
-  end
-  lastTime = os.time()
-  return "w"
-end
-------------------------------
---[[Time keeping functions]]--
-------------------------------
-local dif = "5"
-local forward = false 
-local function getRealTime(dif,forward)
-  if forward then 
-    dif = dif.."+hours+from+now"
-  else 
-    dif=dif.."+hours+ago"
   end 
-  local url = "http://chronic.herokuapp.com/utc/"
-  --^ this is the best thing. ever. returns in plain text, and does not need a developer key. It makes my life so much easier.
-
-  local utc = http.get(url..dif)
-
-  if not utc then return false end
-  utc = utc.readAll()
-  if not utc then return false end 
-  --print(utc)
-  --get these into seperate variables
-  local year = utc:sub(1,utc:find("-")-1)
-  --print(utc:find"-")
-  --print(year)
-  local month = utc:sub(utc:find"-"+1,utc:find("-",utc:find"-"+1)-1)
-  month=month:gsub(" ","")
-  --print(month.."e")
-  local day = utc:sub(utc:find("-",utc:find"-"+1)+1,utc:find(" "))
-  day=day:gsub(" ","")
-  --print(day.."e")
-  local clocktime = utc:sub(utc:find" "+1,utc:find(" ",utc:find" "+1)-1)
-
-  if tonumber(clocktime:sub(1,2)) >= 13 and (not osStuff.miliTime) then
-    clocktime= tostring(tonumber(clocktime:sub(1,2))-12)..string.sub(clocktime,3,#clocktime)
+end  
+function osStuff.move(file1,file2,pass)
+  if check(file1,"w",pass) ==true and check(file2,"w",pass)==true then
+    return move(file1,file2)
   end 
-  clocktime=clocktime:gsub(" ","")
-  --print(clocktime.."e")
-  return year,month,day,clocktime
-end 
-local function addsecond(clocktime)
-  local seconds = clocktime:sub(#clocktime-1,#clocktime)
-  seconds:gsub(":"," ")
-  --print(seconds)
-  seconds =seconds+1
-  if seconds > 59 then 
-    --instead of doing any further time calculations, just ask the server again. So, this means the server is asked every minute for the time.
-    return false
-  end
-  
-  local small
-  if seconds <10 then 
-    seconds = tostring(seconds)
-    small = true 
-    seconds = "0"..seconds 
+end  
+function osStuff.copy(file1,file2,pass)
+  if check(file1,"r",pass) ==true and check(file2,"w",pass)==true then
+    return copy(file1,file2)
   end 
-  --print("c "..clocktime:sub(1,#clocktime-2))
-  return clocktime:sub(1,#clocktime-2)..seconds
-end 
-local year,month,day,clocktime
-local function timekeeping()
-  while true do
-    if not clocktime then --if the server went down, we'll keep trying every second... hopefully we're not the cause of its downtime, or it's not going back up anytime soon, lol.
-      year,month,day,clocktime=getRealTime(dif,forward)
-    end  
-    local t = addsecond(clocktime)
-    if t then 
-      clocktime=t 
-    else 
-      year,month,day,clocktime=getRealTime(dif,forward)
-    end 
-    --print("Year "..year.." on the "..day.." of "..month..", "..clocktime)
-    os.queueEvent"clocktick"
-    sleep(1)
-  end  
-end 
-function osStuff.getTime() return year,month,day,clocktime end 
-
-
---Overwrite the Game-Engine console to work with this
-local gameWritetoConsole = game.writeToConsole
-function game.writeToConsole(txt)
-  return gameWritetoConsole("["..(clocktime or "Clock service not started yet").."] "..txt)
-end 
-game.l = game.writeToConsole 
-function game.writeErrorToConsole(txt)
-  game.writeToConsole("[ERROR] "..txt)
-  return txt 
-end 
-game.e=game.writeErrorToConsole
-
-
-
-
+end  
 
 
 
@@ -1129,9 +1334,9 @@ local function run(prg,pargs)
     runningProgram = prog
     if prog then 
       local failed
-      prog,failed = loadfile(prog)
+      prog,failed = loadfile(prog,env)
       if type(prog)=="function" then 
-        setfenv(prog,env)
+        --setfenv(prog,env)          ^ replacement
         local ok,err = pcall(function() prog(unpack(pargs)) end)
         if (not ok) and err then 
           printError(err)
@@ -1148,9 +1353,9 @@ local function run(prg,pargs)
 end 
 function env.os.loadAPI(path)
   local _env = setmetatable({},{__index=env})
-  local pg,err = loadfile(path)
+  local pg,err = loadfile(path,_env)
   if pg then
-    setfenv(pg,_env) 
+    setfenv(pg,_env)  --^ replacement
     pg()
   else 
     printError(err)
@@ -1180,12 +1385,12 @@ local function tokenise( ... ) -- Taken from CC's shell/bios
 end
 function os.run( _tEnv, _sPath, ... )
     local tArgs = { ... }
-    local fnFile, err = loadfile( _sPath )
+    local tEnv = _tEnv
+    setmetatable( tEnv, { __index = env } )
+    local fnFile, err = loadfile( _sPath , tEnv)
     if fnFile then
-        local tEnv = _tEnv
         --setmetatable( tEnv, { __index = function(t,k) return _G[k] end } )
-        setmetatable( tEnv, { __index = env } )
-        setfenv( fnFile, tEnv )
+        --setfenv( fnFile, tEnv ) replaced in loadfile
         local ok, err = pcall( function()
             fnFile( unpack( tArgs ) )
         end )
@@ -1216,6 +1421,27 @@ env.shell.openTab = noSupport
 env.shell.switchTab = noSupport
 env.lan = lan
 function env.shell.getRunningProgram() return runningProgram end 
+function osStuff.newDaemon(funct,name)
+  if not routines[name.."d"] then 
+    --setfenv(funct,env) unnesiary
+    omni.newRoutine(name.."d",funct,false)
+  else 
+    error("Daemon "..name.." already exists!")
+  end 
+end 
+env.osStuff.newDaemon = osStuff.newDaemon
+local oldRe = env.term.redirect
+function env.term.redirect(obj)
+  buffers[curRout] = obj 
+  oldRe(obj)
+  if not env.term.write == obj.write then 
+    game.e"Failed to redirect the term!"
+  end 
+  os.queueEvent"redirected"
+  coroutine.yield()
+end
+
+
 function osStuff.doMain()
   osStuff.doDir()
   --read input
@@ -1256,28 +1482,33 @@ function osStuff.doMain()
     end]]
     if input == "console" then 
       game.openConsole()
-    elseif input == "startx" then 
+    --[[elseif input == "startx" then 
       if term.isColor() then 
         --start the GUI
         print"not done"
+        print"^^Ignore that! He's lying!"
+
+        print"The GUI interface is starting NOW!"
       else 
         osStuff.p"noBasicGUI"
-      end
+      end]]
     else 
       osStuff.resetClear()
       -- Execute the program
       local pargs = tokenise(input)
+      local failed
       if not pargs[1] then 
         printError(osStuff.g"Nothing"..osStuff.g"noExist")
       else
         local prog=shell.resolveProgram(pargs[1])
         runningProgram = prog
+        failed = pargs[1]
         table.remove(pargs,1)
         if prog then 
           local failed
-          prog,failed = loadfile(prog)
+          prog,failed = loadfile(prog,env)
           if type(prog)=="function" then 
-            setfenv(prog,env)
+            --setfenv(prog,env) replaced at loadfile
             local ok,err = pcall(function() prog(unpack(pargs)) end)
             term.redirect(cur)
             if (not ok) and err then 
@@ -1289,7 +1520,7 @@ function osStuff.doMain()
             end 
           end 
         else 
-          printError(input..osStuff.g"noExist")
+          printError(failed..osStuff.g"noExist")
         end 
       end 
       if osStuff.didClear() then 
@@ -1303,24 +1534,11 @@ function osStuff.doMain()
 
         term.setCursorPos(1,cury)
       end 
-
-
-
-
-
-
-
-
-
-
-
-
       -- Reset background colors: 
       term.setBackgroundColor(osStuff.backColor)
       term.setTextColor(osStuff.commandColor)
     end
-  else--RECODE THIS!!!
-    --  MY EYES! THEY BUURRRNNNNN
+  else
     local inputF
     --they're running a lua command
     local _,y=term.getCursorPos()
@@ -1333,58 +1551,47 @@ function osStuff.doMain()
     input=string.sub(input,2,#input)
     print(input)
     --make it into a command:
-    inputF,err= loadstring("return "..input)
-    if err then 
-      game.l"noReturn"
-      game.l(type(inputF))
-      inputF,err=loadstring(input)
-    end
-    --set its envirnment
-    setfenv(inputF,tEnv)
-    --call it
-    game.l(inputF)
-    game.l(err)
-    game.l("f"..type(inputF))
-    inputF()
-    if type(inputF)=="function" then 
-      local ok,err=pcall(inputF)
-      inputF()
-      game.l"yes"
-      game.l(ok)
-      game.l(err)
+    --[[Brief:
+    If it will work as "return ".. , 1
+    If it will work as plain, 2
+    --
+    1:
+    Print what it returns
+    --
+    2: 
+    Print the value through serialization
+    ]]
+    local returnAsVar = loadstring(" return "..input)
+    local normal = loadstring(input)
+    if type(returnAsVar) == "function" then 
+      normal = returnAsVar
+    elseif type(normal) ~="function" then 
+      printError(normal)
+    end 
+    setfenv(normal,env) 
+    local ok,res = pcall(normal)
+    if ok then 
+      local ok2, res2 = pcall(textutils.serialize, res)
+      if ok2 then 
+        print(res2)
+      else 
+        print(tostring(res))
+      end 
     else 
-      print(err)
-    end
-    
-    if not ok and err then
-      --first let's check if it's a variablef
-      local varF=loadstring("return "..input.."")
-      setfenv(varF, tEnv)
-      local var,errr=pcall(varF)
-     -- printError("Your command had this error: \n"..err.."\nIf you want to run a program, put ; infront.")
-      --could be a variable, etc.
-      --check if it;s a table
-      if type(var)=="table" then
-        local okay,er = pcall(textutils.serialize, err)
-        if okay then--did work
-          print(er)
-        else
-          print(tostring(err))
-        end
-      else
-        print(tostring(err))
-      end
-    end
+      printError(res)
+    end 
   end
 end
 
 env.osStuff.doMain = osStuff.doMain --doMain would get discluded otherwise.
+topEnv = true
 if args[4]~="stop" then 
   --osStuff.int()
+  print"start"
   omni.newRoutine("term",osStuff.int,false)
-  omni.newRoutine("time",timekeeping,false)--this really doesn't need a buffer
-  omni.makeRoutineActive("time")
+  osStuff.newDaemon(timekeeping,"time")
+  omni.makeActive("term")
+  print"startroutines"
   omni.initRoutines()
-end
+end 
 game.l"[OS] Has finished executing. This is NOT supposed to happen!"
-game.l"--the user won't see this, the console.log will never be closed. This is here so they see the above message.--"
