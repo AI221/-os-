@@ -1,0 +1,59 @@
+osStuff is the table containing all user-accessable [os] functions.
+
+Here's a list of functions, their input, and their output.
+
+osStuff.centerWrite(txt) write()s "txt" to the center
+osStuff.centerPrint(txt) print()s "txt" to the center
+osStuff.copyToClipboard(txt) - Copies txt to the clipboard, putting it at spot #1
+osStuff.removeFromClipboard(num) - Removes clipboard texts of the number specified
+osStuff.getClipboard() - Returns the entire clipboard
+osStuff.prgName(path) - Returns the program name of the path specified.
+osStuff.getDir(program) - Returns the directory that the specified program is in
+osStuff.getTime() returns: year,month,day,clocktime,pm
+osStuff.loadSettings() - Loads the settings from the settings file
+osStuff.doMain() - Will let the user input 1 command, and run it, then stop.
+--
+Multitasking:
+
+osStuff.spawnApp(name,function,taskbarBackgroundColor,taskbarTextColor,taskbarText) - Spawns an app. The name will be the name of it, function is where you specify the function, and the rest should be self-explanatory
+
+osStuff.returnTaskstuffs() - Returns the things on the taskbar
+
+omni.makeActive(name) - Makes the routine specified active
+
+omni.legacyMakeActive(name) - Makes the app active, but the next time this function is called, it will deactivate it. This is *NOT* a depreciated or old function.
+
+omni.listRoutines() - Returns a table full of the names of routines
+
+omni.getRoutineStatus(name) - Gives the status of a routine specified
+
+omni.getOriBuffer(name)  - Gives the buffer originaly assigned to the routine
+
+omni.getBuffer(name) - Get the buffer the routine is currently using
+
+osStuff.newDaemon(function,name) - Creates a dameon name with the code of function. Daemons are expected not to write to the screen, and are essentially a background procsess. They do, however, have access to the screen. You'll notice the menubar in the GUI is actually a daemon.
+
+
+--
+
+Language stuff
+
+osStuff.g(a) Returns the indexation of the language table with the key a . a CAN be "table.nextTable". It's not a normal lua indexation. This function is slightly depreciated.
+
+osStuff.p(a) Same as g, but prints it.
+
+lan. - This isn't a function, but a special table in the global envirnment. You can index it just like a normal table, but it updates if the language changes. It contains the language file.
+
+--
+Metadata
+
+osStuff.getMetadataForFile(path) - Gives the metadata for the file path
+osStuff.getAllMetadata() - Returns all the metadata in the entire system
+osStuff.getLowestFolderPerms(folder,type) - type is the account you want to check for, "guest", "app", or "admin" - Returns the lowest permission level set in a file of the contents of the specified folder.
+osStuff.writeMeta(file,name,author,filetype,times,perm,pass) - This should be self-explanatory. "name" is part of metadata. pass is the password for the currently-logged-in-account.
+osStuff.appMeta(file,name,auth,ftype,times) - Like writeMeta, but only includes stuff you can do without needing to put in the user's password. Can only do this to files apps have permission to write to, hence the name "appMeta"
+~fs.isReadonly~ will return "noAccess" if you don't have permission to read a file~
+osStuff.sudoReadOnly(file) - Returns weather or not a file is read only if the user puts in their password and runs it with their permission level
+osStuff.open(file,mode,pass) - Open a file at the user who is logged in's permission level. Goes also for delete,move,copy,
+
+
