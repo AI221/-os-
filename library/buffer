@@ -1,15 +1,4 @@
-local function clearLine(self,l) 
-	l= l or 1 
-	local white = ""
-	for i=1,self.getSize() do 
-		white = white.." "
-	end 
-	local x,y = term.getCursorPos()
-	--term.setBackgroundColor(colors.black)
-	term.setCursorPos(1,l)
-	self.t.write(white)
-	term.setCursorPos(x,y+1)
-end 
+
 
 --CONFIG:
 local lazy = false
@@ -45,10 +34,37 @@ if ((b[y] or {})[x] or {}).bg then
 	if ((b[y] or {})[x] or {}).tx then 
 		term.setTextColor(b[y][x].tx)
 	end ]]
-function newBuf(w,h)
+function newBuf(w,h,nativeT)
 	local a,b = term.getSize()
 	w,h = (w or a),(h or b)
 	local self = {}
+	local function clearLine(l) 
+		l= l or 1 
+		local white = ""
+		for i=1,self.getSize() do 
+			white = white.." "
+		end 
+		local x,y = self.getCursorPos()
+		--term.setBackgroundColor(colors.black)
+		self.t.setCursorPos(1,l+(self.pY-1))
+		self.t.setBackgroundColor(self.bg)
+		self.t.write(white)
+		self.t.setCursorPos(x,y)
+	end 
+	function deepcopy(orig)--taken from http://lua-users.org/wiki/CopyTable
+	    local orig_type = type(orig)
+	    local copy
+	    if orig_type == 'table' then
+	        copy = {}
+	        for orig_key, orig_value in next, orig, nil do
+	            copy[deepcopy(orig_key)] = deepcopy(orig_value)
+	        end
+	        setmetatable(copy, deepcopy(getmetatable(orig)))
+	    else -- number, string, boolean, etc
+	        copy = orig
+	    end
+	    return copy
+	end
 	function self.getSize()
 		return self.sizex,self.sizey 
 	end 
@@ -57,15 +73,21 @@ function newBuf(w,h)
 			return error"[buffer][resize] - Expected number, number"
 		end
 		self.sizex,self.sizey = x,y 
-		self.blit()
+		self.bufferblit()
 	end 
 	function self.setCursorPos(x,y) 
+		if 1>x then
+			x=1
+		end 
+		if 1>y then 
+			y=1 
+		end
 		if type(x)~="number" or type(y)~="number"then 
 			return error"[buffer][setCursorPos] - Expected number, number"
 		end 
 		self.x,self.y=x,y 
 		if self.isActive then 
-			self.t.setCursorPos(x+self.pX,y+self.pY)
+			self.t.setCursorPos(x+(self.pX-1),y+(self.pY-1))
 		end 
 	end 
 	function self.getCursorPos()
@@ -90,55 +112,50 @@ function newBuf(w,h)
 		end
 	end 
 	function self.scroll(ammount)
-		game.l"scroll"
-		for l=1,ammount do 
-			--game.l("s "..l)-----------------------------------------------------
-			for i=2,table.maxn(self)+1 do 
-				--game.l("w "..i.."n "..i-1)-----------------------------------------------------
-				self[i-1] = self[i]
-				self[0] = nil 
-			end 
-			 
+		game.l("scrl "..ammount)
+		ammount = ammount or 1 
+	 	local _,cy=self.getCursorPos()
+		for i=1,table.maxn(self) do 
+			self[i]=nil
+			self[i] = deepcopy(self[i+ammount]) or {}
 		end 
+		self[0] = nil 
+		self[#self] = nil
+		self[#self+1]=nil
 		if self.isActive then 
 			--clear the actual term:
-			for i=1,self.sizey do --table.maxn(self) do 
-				--self[i]={}
-				clearLine(self,i)
+			for i=1,self.sizey+1 do
+				clearLine(i)
 			end 
-			self.setCursorPos(1,19)
-			--[[if self.isActive then 
-				self.t.scroll(ammount)
-			end ]]--reason: caused the ENTIRE term to scroll, not just our buffer,
-			--we'r e going to have to blit it 
-			self.blit()
-			self.setCursorPos(1,19)
+			self.bufferblit(self.pX-1,self.pY-1)
+			self.setCursorPos(1,self.sizey)
 		end 
 	end 
 	function self.current() 
 		return self 
 	end 
 	function self.makeActive(pX,pY)
-		self.isActive,self.pX,self.pY = true,pX-1 or 1,pY-1 or 1
+		self.isActive,self.pX,self.pY = true,pX or (self.pX or 1),pY or (self.pY or 1)
+		self.bufferblit(self.pX-1,self.pY-1)
+		self.t.setCursorPos(self.x+self.pX-1,self.y+self.pY-1)
+		self.t.setCursorBlink(self.cursorBlink)
 	end 
-	function self.makeInactive() 
+	function self.setActivePos(pX,pY)
+		self.pX,self.pY = pX or self.pX,pY or self.pY
+	end 
+	function self.makeInactive()
 		self.isActive = false
+		if self.isActive then 
+			os.shutdown()
+		end 
 	end 
 	self.setTextColour = self.setTextColor 
 	self.setBackgroundColour = self.setBackgroundColor
 	function self.isColor(color)
-		return self.t.isColor(color) 
+		return self.t.isColor(color)     
 	end 
-
-
-	self.isColour = self.isColor
-	function self.write(txt)
-		if type(txt)~="string" then 
-			txt = tostring(txt)
-		end 
-		game.l"write"
-		--yield()-------------------------------------------------------------------
-		--self.t.write"hi"-------------------------------------------------------------------
+--old writing method
+		--[[
 		if self.lazy then 
 			self[self.y] = self[self.y] or {}
 			self[self.y][self.x] = self[self.y][self.x] or {}
@@ -198,26 +215,94 @@ function newBuf(w,h)
 			--self.t.setTextColor((self[y] or {})[x] or {}).tc)
 			self.t.write(txt)
 		end 
-		--[[game.l"{"
+		--game.l"{"
 		for i=1,#self do 
 			if self[i] then 
 				game.l(textutils.serialize(self[i]))
 			end 
 		end 
 		game.l"}"]]-----------------------------------------
+
+	self.isColour = self.isColor
+	function self.newNozone(startx,endx,starty,endy)
+		for i=starty,endy do 
+			self.nr[i] = self.nr[i] or {}
+			for o=startx,endx do 
+				self.nr[i][o] = true 
+			end 
+		end 
 	end 
-	function self.blit(x,y)  -- NOTE: Code normal buffer system firs
+	function self.destroyNozone(startx,endx,starty,endy) -- With aerosol cans
+		for i=starty,endy do 
+			self.nr[i] = self.nr[i] or {}
+			for o=startx,endx do 
+				self.nr[i][o] = nil
+			end 
+		end 
+	end 
+	local function cAt(txt,num)
+		return string.sub(txt,num,num)
+	end 
+	function self.write(txt)
+		--game.l"a"----------------------------------
+		if type(txt)~="string" then 
+			txt = tostring(txt)
+		end 
+		self[self.y]=self[self.y] or {}
+		self.nr[self.y]=self.nr[self.y] or {}
+		-- We split these up into 2 loops, as it is more effecient to check once than many times during the loop
+		local x
+		
+		if self.isActive then 
+			--game.l"activeWrite"--------------------------
+			self.t.setCursorPos((self.x+self.pX)-1,(self.y+self.pY)-1)
+			self.t.setBackgroundColor(self.bg)
+			self.t.setTextColor(self.tc)
+			for i=1,#txt do --Note: Doing this forwards & not checking if the cursor is at the edge does have a slight impact on compatibility if term.write is called through something other than write. 
+				x=i+self.x-1
+				--game.l("r - i "..i.." x "..x.." c "..cAt(txt,i).." ; y "..self.y)
+				self[self.y][x] = {}
+				self[self.y][x].txt = cAt(txt,i)
+				self[self.y][x].bg = self.bg
+				self[self.y][x].tc = self.tc
+				if self.nr[self.y][x] then
+					self.t.setCursorPos(((self.x-self.pX)+1)+i,(self.y-self.pY)+1)
+				else 
+					self.t.write(cAt(txt,i))
+					--sleep(.1)
+				end 
+			end 
+			--Now, set the X cursor pos to the correct place
+			self.x = self.x+#txt 
+			--game.l(self.x)
+		else 
+			-- C&P'd from above
+			for i=1,#txt do --Note: Doing this forwards & not checking if the cursor is at the edge does have a slight impact on compatibility if term.write is called through something other than write. 
+				x=i+self.x-1
+				self[self.y][x] = {}
+				self[self.y][x].txt = cAt(txt,i)
+				self[self.y][x].bg = self.bg
+				self[self.y][x].tc = self.tc
+			end 
+			--Now, set the X cursor pos to the correct place
+			self.x = self.x+#txt 
+		end 
+	end 
+	function self.blit()end --Compatibility for future CC updates
+	function self.bufferblit(x,y)  -- NOTE: Code normal buffer system firs
 		--game.l"blit"
 		--clear the screen
 		for i=1,table.maxn(self) do 
-			game.l("writy "..i+self.pY)
+			----------game.l("writy "..i+self.pY)-----------------------
 			self.t.clearLine(i+self.pY)
 		end
 		x,y=x or self.lastX, y or self.lastY
 		self.lastX,self.lastY = x,y 
-		x,y=x-1,y-1
+		--x,y=x-1,y-1
+		-------game.l("blitx "..x.." y "..y)--------------------
 		if self.lazy then 
 			--group operations by opnum
+			game.l"dsgfhjklsklghdsjklghsdjklghsdfjklgdhgjklsdhgfjkldhgjkldfhgsdfjkghsdfjkghdfsjklghsdjkigfhdgjkhg"
 			local ops = {}
 			local where = {}
 			for i=1,table.maxn(self) do 
@@ -247,41 +332,45 @@ function newBuf(w,h)
 				end 
 			end 
 		else 
-			for i=1+y,table.maxn(self) do 
+			for i=1,table.maxn(self) do --redo, and go over the screen parts rendering to rather than entire buffer.
 				if self[i] then
-					for o=1+x,table.maxn(self[i]) do 
+					--local yta = ""--------------------
+					for o=1,table.maxn(self[i]) do 
 						--game.l("m Y "..i.." x "..o)-----------------------------------------------------
-						if self[i][o] then 
-							term.setCursorPos(o,i)
-							term.setBackgroundColor(self[i][o].bg)
-							term.setTextColor(self[i][o].tc)
+						if self[i][o] and (not (self.nr[i] or {})[o]) then 
+							self.t.setCursorPos(o+x,i+y)
+							self.t.setBackgroundColor(self[i][o].bg)
+							self.t.setTextColor(self[i][o].tc)
 							self.t.write(self[i][o].txt) 
+							--yta=yta..self[i][o].txt ----------------------
 							--game.l("ye Y "..i.." x "..o)-----------------------------------------------------
 						end 
 					end 
+					--game.l(yta)-----------------------
 				end 
 			end 
 		end 
 	end
 	function self.clear()
+		local oldx,oldy = self.x,self.y
 		for i=1,self.sizey do --table.maxn(self) do 
-			--self[i]={}
-			term.clearLine(i)
+			self.setCursorPos(1,i)
+			self.clearLine()
 		end 
-		--[[if self.isActive then 
-			--clearRealdisp(self)
-			for i=1,self.sizey do 
-				game.l("wiope "..i+self.pY)
-				self.t.clearLine(i+self.pY)
-			end 
-		end ]]
+		self.setCursorPos(oldx,oldy)
 	end 
 	function self.clearLine() 
-		local l = self.getCursorPos()
-		self[l]={}
-		if self.isActive then 
-			self.t.clearLine(l+self.pY)
-		end
+		local _,l = self.getCursorPos()
+		local str = ""
+		for i=1,self.getSize() do 
+			str=str.." "
+		end 
+		self.setCursorPos(1,self.y)
+		self.write(str)
+		--[[if self.isActive then
+			clearLine(l+(self.pY-1)) 
+			self.t.setCursorPos(self.x,self.y)
+		end]]
 	end
    local buffer=self
    --buffer vars 
@@ -291,7 +380,7 @@ function newBuf(w,h)
 
    self.bg = colors.black 
    self.tc = colors.white
-   self.t = term.current()
+   self.t = nativeT
    self.y = 1 
    self.x = 1 
    self.lastX = 1 
@@ -299,5 +388,6 @@ function newBuf(w,h)
    self.lazy = lazy 
    self.isntNative = true 
    self.resize(w,h)
+   self.nr = {} -- Nozone, in a y:x table. To remove, use an aerosol can.
    return self--,"Thank you, come again!"
 end 
