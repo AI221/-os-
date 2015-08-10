@@ -1,0 +1,136 @@
+--By Jackson McNeill, inspired by the Windows Powershell command
+--This does NOT YET support metadata 
+--              ---
+--also sudo was used as a template to make this :3
+local args = {...}
+if not args[1] then 
+	print"Usage: whatif [programName]\nWill run the program, however, fs, turtle, and some OS functions will print to the screen with their args rather than executing. This is great for debugging, as it prevents damage from being done."
+	return 
+end 
+args[1]="/"..shell.resolveProgram(args[1])
+if not fs.exists(args[1]) then 
+	printError(args[1].." does not exist!")
+	return 
+end 
+local f = fs.isReadOnly(args[1])
+if f =="noAccess" then 
+	printError("You do not have permission to access "..args[1].."!\nIf you are an administrator, change this with medit.")
+	return 
+end 
+f = fs.open(args[1],"r")
+local program = f.readAll()
+f.close()
+--Load the file as a function 
+local function log(t)
+	game.writeToConsole(t)
+	if args[2] then 
+		print(t)
+	end 
+end 
+local function e() end 
+program = loadstring(program)
+if type(program) == "function" then 
+	-- Create a table containing old fs values
+	local oldfs = {}
+	for key,value in pairs(fs) do 
+		oldfs[key] = value 
+	end 
+	-- We override shell.getRunningProgram so 
+	local grp = shell.getRunningPrograg
+	local fakeenv  = {}
+	local function writeToFake(file,what)
+		log("writing "..what.." to fake file "..file)
+		fakeenv[file] = (fakeenv[file] or "")..what 
+	end 
+	local function deleteRealToFake(file)
+		fakeenv[file] = 1
+	end 
+	local function getFake(file)
+		return fakeenv[file]
+	end 
+	local function openEither(file,mode)
+		if getFake(file)==1 then 
+			return false 
+		end 
+		if fs.exists(file) then 
+			return oldfs.open(file,mode)
+		else 
+			local cont = getFake(file)
+			local lastFound = 1
+			return { 
+			readAll = function() return cont end,
+			readLine = function() local nextLine = cont:find("\n",lastFound) local r = string.sub(cont,lastFound+1,nextLine-1) lastFound = nextLine return r end,
+			close = e,
+		}
+	end 
+	function fs.open(a,b)
+		local ta = {}
+		if mode == "w" or mode == "a" then 
+			return { 
+				write = function(s) log("(fake)Write "..s.." to "..a) writeToFake(a,s) end,
+				writeLine = function(s) log("(fake)Write line "..s.." to "..a) writeToFake(a,s.."\n") end,
+				flush = e, 
+				close = e,
+			}
+		elseif mode == "r" then 
+			log("read "..a.." - r (+virtual files)")
+			return openEither(a,b)
+		elseif mode =="rb" then 
+			log("read "..a.." - rb")
+		elseif mode == "wb" or mode == "ab" then 
+			log("read "..a.." - "..b)
+		end 
+		return oldfs.open(a,b)
+	end 
+	function fs.copy(a,b)
+		local f =openEither(a,"r")
+		if f then 
+			a=f.readAll()
+			f.close()
+		else 
+			error"Permission Denied/doesn't exist"
+		end 
+		writeToFake(b,a)
+	end 
+	function fs.move(a,b)
+		local f =openEither(a,"r",pass)
+		local p
+		if f then 
+			p=f.readAll()
+			f.close()
+		else 
+			error"Permission Denied/doesn't exist"
+		end 
+		deleteRealToFake(a)
+		writeToFake(b,p)
+	end 
+	function fs.delete(a)
+		return deleteRealToFake(a)
+	end 
+	function shell.getRunningProgram() return shell.resolveProgram(args[1]) end 
+	--[[function env.loadfile(path)
+		print"loadfile"
+		local file = env.fs.open(path,"r")
+		local prog
+		if file then 
+			prog = file.readAll()
+			file.close()
+			return loadstring(prog)
+		end 
+	end 
+	function env.dofile(file)
+		local prog = env.loadfile(file)
+		return prog() 
+	end ]]
+	--[[local env = getfenv()
+	setfenv(program,env)]]
+	local ok,err = pcall(program, unpack(args, 2) )
+	if not ok then 
+		printError(err)
+	end 
+	for key,value in pairs(oldfs) do 
+		fs[key] = value 
+	end 
+else 
+	printError(program)
+end 

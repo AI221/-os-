@@ -1,0 +1,2 @@
+print"~Startup Program~"
+print(tostring(topEnv))
