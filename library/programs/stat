@@ -1,0 +1,125 @@
+--By Jackson McNeill, with inspiration from the Unix command
+local args = {...}
+if not args[1] then 
+  osStuff.p"stat.usage"
+  return
+end 
+args[1]= fs.combine(shell.dir(),args[1])
+if not fs.exists(args[1]) then 
+	printError(osStuff.g"fileNoExist")
+	return 
+end 
+
+local meta = osStuff.getMetadataForFile(args[1])
+if not meta then 
+  printError(osStuff.g"stat.noMeta")
+  return 
+end 
+local _d = meta.timestamp.accessed
+local aday 
+local atime 
+local amonth
+if _d then 
+  aday,amonth,atime = osStuff.seperateTime(_d)
+end 
+aday=aday or lan.Nil 
+atime=atime or lan.Nil 
+amonth=amonth or lan.Nil
+_d = meta.timestamp.modified
+local mday
+local mtime
+local mmonth
+if _d then 
+  mday,mmonth,mtime = osStuff.seperateTime(_d)
+end 
+mday = mday or lan.Nil
+mtime = mtime or lan.Nil
+mmonth = mmonth or lan.Nil
+_d = meta.timestamp.created
+local cday 
+local ctime
+local cmonth 
+if _d then 
+  cday,cmonth,ctime = osStuff.seperateTime(_d)
+end 
+cday = cday or lan.Nil
+ctime=ctime or lan.Nil 
+cmonth=cmonth or lan.Nil
+local function nWrite(t)
+	term.setTextColor(osStuff.textColor)
+	write(t)
+end 
+local function tWrite(t)
+	term.setTextColor(osStuff.commandColor)
+	print(t)
+end 
+local function mWrite(t)
+	term.setTextColor(osStuff.commandColor)
+	write(t)
+end 
+
+
+local function printPerms(var,value)
+	local tValue
+	if value == 0 then 
+		tValue = osStuff.g"stat.noAc"
+	elseif value == 1 then 
+		tValue = osStuff.g"stat.readonly"
+	elseif value == 2 then 
+		tValue = osStuff.g"stat.readwrite"
+	end 
+	nWrite(var..": ")
+	tWrite(tValue)
+end 
+
+nWrite(osStuff.g"File"..": ")
+tWrite(args[1])
+nWrite(osStuff.g"stat.name")
+tWrite(meta.name or osStuff.g"Nil")
+nWrite(osStuff.g"stat.author")
+tWrite(meta.author or osStuff.g"Nil")
+nWrite(osStuff.g"stat.type")
+tWrite(meta.type or osStuff.g"Nil")
+nWrite(osStuff.g"stat.cnd")
+mWrite(cmonth)
+nWrite(lan.stat.day)
+mWrite(cday)
+nWrite(osStuff.g"stat.time")
+tWrite(ctime)
+nWrite(osStuff.g"stat.lmd")
+mWrite(mmonth)
+nWrite(lan.stat.day)
+mWrite(mday)
+nWrite(lan.stat.time)
+tWrite(mtime)
+nWrite(osStuff.g"stat.lad")
+mWrite(amonth)
+nWrite(lan.stat.day)
+mWrite(aday)
+nWrite(osStuff.g"stat.time")
+tWrite(atime)
+term.setTextColor(osStuff.dirColor)
+osStuff.p"stat.perms"
+local prms
+for i,o in pairs((meta.permissions or {})) do 
+	prms = true 
+	--print(i)
+	printPerms(i,o)
+end 
+if prms then 
+	if not meta.permissions.admin then 
+		printPerms(osStuff.g"stat.admin",2)
+	end 
+	if not meta.permissions.guest then 
+		printPerms(osStuff.g"stat.guest",2)
+	end 
+	if not meta.permissions.app then 
+		printPerms(osStuff.g"stat.app",2)
+	end 
+else 
+	printPerms(osStuff.g"stat.evry1",2)
+end 
+tWrite"*Admin permissions mean nothing, they're always read/write"
+
+
+

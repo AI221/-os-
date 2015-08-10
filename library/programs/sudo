@@ -1,0 +1,166 @@
+--By Jackson McNeill, with inspiration from the Unix command
+local args,su,pass = {...}
+if not args[1] then 
+  print(osStuff.g("sudo.usage"))
+  return 
+end 
+if args[2]=="-pass" then 
+  pass=args[3] or ""
+end
+if args[1] == "su" then 
+  su=true 
+  args[1]="library/blank"
+elseif args[1]=="unsu" then 
+  if not normfs then 
+    error(lan.sudo.noSwitchedUsrs)
+  end 
+  --[[for i,o in pairs(normfs) do 
+    --game.l(i)
+    fs[i]=normfs[o]
+  end ]]
+  fs=normfs
+  normfs=nil
+  os.unloadAPI"io"
+  os.loadAPI"rom/apis/io"
+  osStuff.isSudo = false
+  return 
+else 
+  local before = args[1]
+  args[1]="/"..(shell.resolveProgram(args[1]) or "")
+  if (not fs.exists(args[1])) or fs.isDir(args[1]) then 
+    printError(before..osStuff.g"sudo.noexistordir")
+    return 
+  end 
+end 
+term.write(osStuff.g"plzentpass")
+pass = pass or read"*"
+local f = osStuff.open(args[1],"r",pass)
+if not f then 
+	printError(osStuff.g"sudo.npa1"..args[1]..osStuff.g"sudo.npa2")
+	return 
+elseif f == "w" then 
+	printError(osStuff.g"badpass")
+	return 
+end 
+local program 
+if not su then 
+  program = f.readAll()
+  --reload IO
+  program=" os.unloadAPI'io' os.loadAPI'rom/apis/io' "..program
+  f.close()
+end 
+local env
+local function shallowcopy(orig)
+      local orig_type = type(orig)
+      local copy
+      if orig_type == 'table' then
+          copy = {}
+          for orig_key, orig_value in pairs(orig) do
+            if orig_key ~="fs" then 
+              copy[orig_key] = orig_value
+            else 
+              game.l"fs"
+            end
+        end 
+      else -- number, string, boolean, etc
+          copy = orig
+      end
+      return copy
+  end
+if su then 
+  env = _G 
+  --create backups of old fs
+  normfs = shallowcopy(fs)
+else 
+  --make program env
+  env = shallowcopy(_G)
+  env.fs={}
+end 
+
+function env.fs.open(a,b)
+    return osStuff.open(a,b,pass)
+end 
+function env.os.loadAPI(path)
+  local _env = setmetatable({},{__index=env})
+  local f=osStuff.open(path,"r",pass)
+  if not f then return false end 
+  local _prog = f.readAll()
+  f.close()
+  local pg,err = loadstring(_prog)
+  if pg then
+    setfenv(pg,_env) 
+    pg()
+  else 
+    printError(err)
+  end
+  local cont = {} 
+  for i,o in pairs(_env) do 
+    cont[i] = o 
+  end 
+  env[fs.getName(path)] = cont
+  return true 
+end 
+function env.os.unloadAPI(name)
+    env[name]=nil 
+end 
+function env.fs.move(a,b)
+    return osStuff.move(a,b,pass)
+end 
+function env.fs.copy(a,b)
+    return osStuff.copy(a,b,pass)
+end 
+function env.fs.delete(a)
+    return osStuff.delete(a,pass)
+end 
+function env.fs.yourmom() print"hu"end
+if not su then 
+  env.lan = lan
+  function env.shell.getRunningProgram() return shell.resolveProgram(args[1]) end --won't work
+  env.fs.isReadOnly = osStuff.sudoReadOnly
+  --Load the file as a function 
+  program = loadstring(program)
+  if type(program) == "function" then 
+  	env.osStuff.isSudo = true--won't work
+    -- Go through stuff not covered by all this
+    for key,value in pairs(fs) do 
+        if not env.fs[key] then 
+            env.fs[key] = value 
+            game.l(key)
+        end 
+    end 
+    setfenv(program,env)
+  	local ok,err = pcall(program, unpack(args, 2) )
+  	if not ok then 
+  		printError(err)
+  	end 
+  else 
+  	printError(program)
+  end 
+  osStuff.isSudo = nil
+else 
+  osStuff.isSudo = true 
+  os.unloadAPI"io"
+  os.loadAPI"rom/apis/io"
+end 
+
+
+
+
+-- We override shell.getRunningProgram so 
+
+    --[[function env.loadfile(path)
+      print"loadfile"
+      local file = env.fs.open(path,"r")
+      local prog
+      if file then 
+        prog = file.readAll()
+        file.close()
+        return loadstring(prog)
+      end 
+    end 
+    function env.dofile(file)
+      local prog = env.loadfile(file)
+      return prog() 
+    end ]]
+    --[[local env = getfenv()
+    setfenv(program,env)]]

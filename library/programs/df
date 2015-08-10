@@ -1,0 +1,71 @@
+--By Jackson McNeill, with loose inspiration from the Unix command
+--This program is an example of using lan. instead of osStuff.g. If you use something that doesn't exist, it'll come out as "lan.whatYouPutAfterTheDot".
+local args = {...}
+if not args[1] then 
+  print(lan.df.usage)
+  return 
+end 
+args[1]=fs.combine("/",shell.resolve(args[1]))
+if not fs.exists(args[1]) then 
+  printError(args[1]..lan.noExist)
+  return 
+elseif fs.isReadOnly(args[1]) == "noAccess" then 
+  if not fs.isDir(args[1]) then 
+    printError(lan.df.badpriv..args[1])
+    return false 
+  end 
+end 
+local function getSpace(file)
+  if fs.isReadOnly(file) =="noAccess" then 
+    print(lan.df.warnbadpriv1..file..lan.df.warnbadpriv2)
+    return 0
+  end 
+  local f = fs.open(file,"r")
+  if f then 
+    local r = f.readAll()
+    f.close()
+    return #r
+  end 
+end 
+local function getFolder(folder)
+  local fls = fs.list(folder)
+  local r = 0
+  for i=1,table.maxn(fls) do 
+    if fs.isDir(folder.."/"..fls[i]) then
+      r=r+getFolder(folder.."/"..fls[i])
+    else 
+      r=r+getSpace(folder.."/"..fls[i])
+      if not r then  
+        printError(lan.df.errorTotalSpace1)
+        return 
+      end 
+    end
+  end 
+  return (r or 0)
+end 
+local total = 0
+if fs.isDir(args[1]) then 
+  --get all files in directory
+  total = getFolder(args[1])
+else 
+  total = getSpace(args[1])
+  if not total then 
+    printError(lan.df.errorTotalSpace2)
+    return 
+  end 
+end 
+--print"///Results:\\\\\\"--note that \\ = \
+local type
+if total/1028 > 1 then 
+  total =math.ceil(total/1028)
+  type = "KB"
+end 
+term.setTextColor(osStuff.dirColor)
+if args[1]=="" then 
+  args[1]="/"
+end 
+write(args[1])
+term.setTextColor(osStuff.textColor)
+write" - "
+term.setTextColor(osStuff.commandColor)
+print(tostring(total).." "..(type or "Bytes"))

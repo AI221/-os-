@@ -1,0 +1,23 @@
+
+args = {...}
+--url of my pi paste
+local url = "k5W1veWa"
+local pi = http.get("http://www.pastebin.com/raw.php?i="..url)
+pi=pi.readAll()
+pi=string.gsub(pi," ","")
+if args[1] then --apps can use this just to get pi
+  return pi
+end
+local function ins(str,area,what)
+  local p1=string.sub(str,1,area)
+  local p2=string.sub(str,area+1,#str)
+  return p1..what..p2
+end 
+--[[break it up
+for i=0,(#pi/term.getSize())-1 do 
+  pi=ins(pi,(i*term.getSize())+i,"\n")
+
+end--]]
+
+  
+osStuff.specialPrint(pi,0)

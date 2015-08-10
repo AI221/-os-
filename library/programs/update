@@ -1,0 +1,48 @@
+local verID = "Qh6PJJyA"
+local args={...}
+function pasteRun(id,aa) --stolen from my small "install utils" API
+  aa=aa or {}
+  if not type(id)=="string" then
+    return "Must has string!"
+  end
+  --get program off pastebin
+  local a=http.get("http://www.pastebin.com/raw.php?i="..id)
+  if not a then return false end
+  a=a.readAll()
+  if not a then return false end
+  local env = {}
+  a=loadstring(a)
+  if not a then return false end
+  --local env= setmetatable({},{__index=_G})
+  local env = getfenv()
+  setfenv(a,env)
+       
+  local ok,err=pcall(a,unpack(aa))
+  --a()
+  if (not ok) and err then
+    printError("Error running "..id..": "..err)
+    return false
+  end
+  return err,env
+end 
+function pasteGet(id)--also stolen
+  if not type(id)=="string" then
+    return "Must has string!"
+  end
+  --get program off pastebin
+  local a=http.get("http://www.pastebin.com/raw.php?i="..id)
+  if not a then return false end
+  a=a.readAll()
+  if not a then return false end
+  return a
+end 
+if tonumber(pasteGet(verID)) > osStuff.version or args[1]=="-f" then 
+	--update 
+	if not osStuff.isSudo then --chepo method of this...
+		shell.run'/library/programs/sudo /library/programs/update -f'
+		return 
+	end 
+	--another chep method of doing thingsL
+	pasteRun("6JU1nY50",{"5","update"})
+end 
+print(lan.noNeedUpdate)

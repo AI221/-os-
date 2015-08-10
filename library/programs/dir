@@ -1,0 +1,30 @@
+local args = {...}
+local all
+for i=1,table.maxn(args) do 
+  if args[i] == "-a" then 
+    all=true 
+    if i==1 then 
+      table.remove(args,1)
+    end 
+  end 
+end
+local dir = fs.combine( shell.dir(),(args[1] or "") )
+if not fs.exists(dir) then 
+  printError("Folder "..dir.." does not exist!")
+  return 
+end 
+local dirs = fs.list(dir)
+local files,folders = {},{}
+for i,o in pairs(dirs) do
+  if not(string.sub(o,1,1) =="." and (not all)) then 
+    if fs.isDir(  fs.combine(dir, o )  ) then 
+      table.insert(folders,o)
+    else 
+      table.insert(files,o)
+    end 
+  end 
+end
+table.sort(files)
+table.sort(folders)
+textutils.pagedTabulate(osStuff.dirColor, folders, osStuff.textColor,files)
+

@@ -1,0 +1,3 @@
+startx is a command that will start the GUI
+
+ This is probably what a lot of users will type at startup, but you should know that, in the "settings" command, you can have this be ran at startup. It should be noted that this cannot be started through an app-- shell.run"startx" will do nothing, as instead of making a shortcut, [os] checks if the command you sent is "startx", and if it is, it will start the GUI. This may change in the future. It should also be noted that startx requires an advanced computer or monitor to work.

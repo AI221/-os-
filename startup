@@ -1,0 +1,153 @@
+local oldPull = os.pullEvent
+os.pullEvent = os.pullEventRaw
+local devmode,args = false
+print"VV Errors / Potential issues VV"
+if _VERSION ~="Lua 5.1" then
+  printError("Expected _VERSION to be Lua 5.1, got ".._VERSION..". The OS may not function as intended.")
+  sleep(5)
+end 
+print()
+if _CC_DISABLE_LUA51_FEATURES then 
+  printError("_CC_DISABLE_LUA51_FEATURES is true. This means programs made for older versions of CC will ceise to function. It is recommended that this is turned off.")
+  sleep(5)
+end 
+print()
+if not _CC_VERSION then 
+  printError"Your version of CC is under 1.7.4 . The OS WILL NOT work. You will most likely get a BSOD upon boot." 
+  sleep(5)
+end 
+print()
+--debug:
+--buffers = {}
+
+if devmode then 
+  args="nosplash"
+end
+
+--print"One moment please..."
+term.clear()
+--capture shellAPI
+osStuff = {}
+local env = _G
+env.shell = shell
+env.osStuff = osStuff
+env.os.pullEvent = oldPull
+print(shellAPI)
+print(env.shell)
+print(env.os.pullEvent == oldPull)
+if multishell then 
+  sleep(0)
+  --tlco
+  local b = os.run
+  --function _G.os.run() _G.os.run = b end
+  local a = printError
+  function _G.printError()--when the bios goes to print the error, we run our code
+    _G.printError=a
+        --no multishell
+    term.redirect(term.native())
+    multishell = nil
+    --kill shell's only reference to multishell
+   -- env.shell.openTab = nil
+    --env.shell.switchTab =nil
+    local pg,err = loadfile("/library/executable")
+    local ok 
+    if type(pg) == "function" then
+      setfenv(pg,env)--setmetatable({},{__index=_G}))
+      ok,err=pcall(pg,args)
+    end
+    if term.isColor and not (turtle or pocket) then 
+      term.clearLine()
+      term.setTextColor(colors.white)
+      term.setBackgroundColor(colors.blue)
+      term.clear()
+      term.setBackgroundColor(colors.white)
+      term.setTextColor(colors.blue)
+      term.setCursorPos(1,4)
+
+      local function cWrite(text)
+        if type(text)=="string" then
+          local _,y=term.getCursorPos()
+          term.setCursorPos((term.getSize()-#text)/2,y)
+          write(text)
+        end
+      end
+      local function cPrint(text)
+        cWrite(text)
+        local _,y=term.getCursorPos()
+        term.setCursorPos(1,y+1)
+      end
+      cPrint"A FATAL ERROR OCCURED"
+      print()
+      term.setBackgroundColor(colors.blue)
+      term.setTextColor(colors.white)
+      cPrint("OS Version ".."0.6".." on ".._VERSION)
+      print()print()
+      print"One or more issues have caused the shell to crash."
+      cPrint"Your current session cannot be resumed"
+      print" Please submit the reproduction steps, OS version,"
+      print" lua version, and error to the Github bug tracker"
+      print()print()
+      cPrint"Press R to restart or C to launch CraftOS"
+      local _,y=term.getSize()
+      term.setCursorPos(1,y-2)
+      cPrint"Error:"
+      write(err or "")
+    else
+      print("Error: "..er)
+    end
+    term.setCursorBlink(true)
+    while true do
+      local _,butto=os.pullEvent"char"
+      butto=string.lower(butto)
+      if butto == "r" then
+        os.reboot()
+      elseif butto == "c" then
+        --ripped from startup
+        print"Admin Login required."
+        local pswd = loadfile"/library/pswd"
+        if type(pswd) ~= "function" then 
+          print"pswd was not a function. hanging."
+          while true do coroutine.yield() end 
+        end 
+        local ok,atype = pcall(pswd)
+        if not ok then 
+          print"pswd crashed. hanging."
+          while true do coroutine.yield() end 
+        end 
+        if atype ~= "admin" then 
+          print"did not login to admin account, hanging."
+          while true do coroutine.yield() end 
+        end 
+
+
+        local shellR,realerr = loadfile("rom/programs/shell")
+        local env = setmetatable({}, {__index=_G})
+        env["shell"] = shell
+        if type(shellR) == "function" then
+          setfenv(shellR, env)
+          local shl, shler = pcall(shellR)
+          game.l"run"
+        elseif realerr then 
+          print(realerr)
+        end
+        print(shl)
+        print(shler)
+        print"CraftOS broke... You are not very lucky."
+        print"Press R to restart, C to relaunch."
+      end  
+    end
+  end
+  --print"Injection Finializing..."
+  --os.queueEvent"terminate"--cause the shell to terminate
+  shell.exit()
+  --os.queueEvent("modem_message","lol","get","rekt","rednet")
+  sos.queueEvent("terminate")
+else 
+  term.redirect(term.native())--just in case
+  shell.run("/library/executable") --their cc version does not have multshell
+  term.setTextColor(colors.white)
+  term.setBackgroundColor(colors.black)
+  print("Please report the error above on Github.")
+  print"Hanging..."
+  while true do coroutine.yield()end  
+end

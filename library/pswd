@@ -1,0 +1,105 @@
+--just in case
+if not fs.exists"library/acc/admin" then 
+  fs.makeDir"library/acc/admin"
+end 
+
+
+
+
+
+local ok,accType,pass=pcall(function()
+		--temp:
+	if not game then game={} function game.l(a) end end 
+
+	local osStuff = osStuff or {}
+	osStuff.prgName = osStuff.prgName or function(path)--ripped from osStuff
+		string.gsub(path,"/","\\")
+		local a
+		while true do 
+			a=string.find(path,"/")
+			if not a then 
+				break
+			end 
+			path = string.sub( path, a+1, #path )
+		end 
+		return path 
+	end 
+	osStuff.g = osStuff.g or function(a) return a end --they'll see reeeaally shortened, bad-grammered, engrish versions of everything
+	osStuff.p = osStuff.p or function(a) print(a) end 
+
+	--get password
+	
+	--find accs
+	local b = fs.list"/library/acc/"
+	for i=1,#b do 
+		if b[i]=="admin" then 
+			table.remove(b,i)
+		end 
+	end 
+	local a = fs.list"/library/acc/admin"
+	for i,o in pairs(a) do
+		table.insert(b,"admin/"..o)
+	end 
+	local pass
+
+	if b[1] then
+		local c
+		local z = function(a) if not a then osStuff.p'usrNoExist' end return a end
+		repeat
+			osStuff.p"entUsr"
+			local usr = read()
+			for i=1,#b do 
+				if osStuff.prgName("/library/acc/"..b[i])==usr then 
+					c=i
+				end 
+			end 
+		until z(c)
+		if c then 
+			local f = fs.open("library/acc/"..b[c],"r")
+			if f then 
+				pass=f.readAll()
+				f.close()
+			else 
+				osStuff.p'usrNoExist'
+				while true do coroutine.yield() end 
+			end
+			for i=1,4 do
+				print("("..osStuff.g"attempt"..tostring(i).."/4) "..osStuff.g"plzentpass")
+				local input = read"*"
+				if input == pass then 
+					--is type admin?
+					if string.sub(b[c],1,5) =='admin' then 
+						return "admin",pass
+					end 
+					return "guest",pass
+				end 
+			end
+			osStuff.p('outAttempt')
+			while true do coroutine.yield() end
+		end
+	else 
+		local input
+		while true do 
+			osStuff.p('noPassFound')
+			input = read()
+			print"Confirm:"
+			if read() == input then 
+				break 
+			end
+		end
+		--write 
+		local f=fs.open("library/acc/admin/root","w")
+		f.writeLine(input)
+		f.close()
+		--set permissions
+		print('Your user name is "root" and password is "'..input..'". "root" is an administrative account, and its password can be found @ /library/acc/admin/ . You will need to login to an administrative account and retype your password to view this.')
+		return "admin",input
+	end
+end)
+if not ok then
+	--something went wrong(they probably terminated it. They can do that all they want, they won't get into the computer.)
+	pcall(function() print"pswd has crashed. Please reboot." print(ok,accType) end)
+	while true do coroutine.yield() end 
+end
+game.l("Logging in as type "..accType)
+return accType,pass
