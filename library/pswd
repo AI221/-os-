@@ -1,3 +1,8 @@
+--[[
+This still exists incase [os] crashes on startup.
+]]
+
+
 --just in case
 if not fs.exists"library/acc/admin" then 
   fs.makeDir"library/acc/admin"

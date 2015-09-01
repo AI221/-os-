@@ -7,12 +7,12 @@ See /license for licensing information
 { Index: - Control F for the thing in ()                 }
 {--------------------------------------------------------}
 { String manipulation stuff (searchStringManip)          }
-{ Copypasta stuff (searchCopypastaStuff)				 }
-{ Coroutine Management functions (searchCoMan)			 }
-{ Shell stuff (searchShell)								 }
-{ Metadata (searchMeta)									 }
-{ Refuge from metadata (searchNoMeta)					 }
-{ Environment stuff (searchEnv)							 }
+{ Copypasta stuff (searchCopypastaStuff)			        	 }
+{ Coroutine Management functions (searchCoMan)	     		 }
+{ Shell stuff (searchShell)						              		 }
+{ Metadata (searchMeta)								                	 }
+{ Refuge from metadata (searchNoMeta)			          		 }
+{ Environment stuff (searchEnv)							 						 }
 {--------------------------------------------------------}
 { Also see library/api for a few other things            }
 {========================================================}
@@ -78,10 +78,12 @@ function shell.programs(...)
 end
 
 local ospe,env,cur=os.pullEvent,{},term.current()
+local accType,accPass
 
 os.pullEvent = coroutine.yield
 --Settings. Customize in "library/settings", just ommit "osStuff.settings." in the serialized table
 osStuff.settings = {}
+osStuff.settings.loginColor = colors.cyan
 osStuff.settings.useAsciiPointer = ">" 
 osStuff.settings.capDirs = false 
 osStuff.settings.useDash = false 
@@ -90,16 +92,35 @@ osStuff.settings.timeDifPlus = false
 osStuff.settings.shortClock = true
 osStuff.settings.doNotGetTime = false
 osStuff.settings.scrollCorrectly = true 
+osStuff.settings.scrollAdd=4
 osStuff.settings.taskSpace=2
-osStuff.settings.desktop = {}
 osStuff.settings.sudoPrepointer = "!"
+osStuff.settings.graphicalLogin = true
+osStuff.settings.startxOnStart = true
+osStuff.settings.tabOffsetY = 1 
+--gui colors
+osStuff.settings.gc = {}
+osStuff.settings.gc.menuBColor = colors.lightBlue
+osStuff.settings.gc.mColor = colors.lightBlue
+osStuff.settings.gc.tColor = colors.black
+osStuff.settings.gc.menuTColor = colors.black
+osStuff.settings.gc.borderBColor = colors.lightBlue
+osStuff.settings.gc.borderTColor = colors.gray 
 osStuff.settings.clip={}
 osStuff.settings.clip.modifier = 56--alt by default, set to -1 to disable the clipboard
 osStuff.settings.clip.paster = 47--V
-osStuff.settings.desktop.maxIcnLength = 7
+osStuff.settings.desktop = {}
+osStuff.settings.desktop.maxIcnLength = 7 --desktop settings are also for files
 osStuff.settings.desktop.showExtension = false
 osStuff.settings.desktop.scrollingDesktop = false
 osStuff.settings.desktop.textBackColor = colors.lightBlue
+osStuff.settings.desktop.titleMenuBColor = colors.lightBlue 
+osStuff.settings.desktop.titleMenuButBColor = colors.blue 
+osStuff.settings.desktop.titleMenuButTColor = colors.black
+osStuff.settings.desktop.textInputBColor = colors.white 
+osStuff.settings.desktop.textInputTColor = colors.black 
+osStuff.settings.desktop.splitterColor = colors.gray
+osStuff.settings.desktop.isCommandPrompt = false --broken 
 osStuff.settings.windows={}
 osStuff.settings.windows.windowsTopColor = colors.blue
 osStuff.settings.windows.windowsMiddleColor=colors.lightBlue
@@ -109,12 +130,17 @@ osStuff.settings.windows.buttonsOnCorrectSide = true
 osStuff.settings.windows.cbuttonX = colors.red 
 osStuff.settings.windows.cbuttonDash = colors.orange
 osStuff.settings.windows.cbuttonPlus = colors.green 
+osStuff.settings.windows.textboxBgColor = colors.white
 osStuff.settings.windows.tbuttonX = "X"
 osStuff.settings.windows.cbuttonDash = "-"
 osStuff.settings.windows.cbuttonPlus = "+"
+osStuff.settings.windows.configBack = colors.blue
+osStuff.settings.windows.configText = colors.white
 osStuff.settings.extensions = {}
 osStuff.settings.extensions.txt = {}
 osStuff.settings.extensions.txt[1] = "rom/programs/edit"
+osStuff.settings.extensions.none = {}
+osStuff.settings.extensions.none[1]="rom/programs/edit"
 osStuff.settings.appLocations = {}
 osStuff.settings.appLocations[1] = "desktop/Term.exe"
 osStuff.settings.fileTypeDefIcons = {}
@@ -123,8 +149,8 @@ osStuff.settings.fileTypeDefIcons.txt = "library/icon/txt"
 
 
 
-osStuff.version = 0.6
-osStuff.os = "[os]"
+osStuff.version = 0.7
+osStuff.os = "Blue"
 ----
 local args={...}
 if args[1] == "nosplash" then 
@@ -146,12 +172,7 @@ elseif term.isColor() then
 	osStuff.settings.sudoColor = colors.red
 	osStuff.settings.autoCompBGColor = colors.lime
 	osStuff.settings.autoCompTColor = colors.black
-	--gui colors
-	osStuff.settings.gc = {}
-	osStuff.settings.gc.menuBColor = colors.lightBlue
-	osStuff.settings.gc.menuTColor = colors.gray
-	osStuff.settings.gc.borderBColor = colors.lightBlue
-	osStuff.settings.gc.borderTColor = colors.gray 
+
 else
 	osStuff.backColor = colors.white
 	osStuff.textColor = colors.black 
@@ -221,6 +242,7 @@ end
 
 
 
+
 ----------------------------
 ----[[1.7 update stuff]]----
 ----------------------------
@@ -228,7 +250,9 @@ local oldGFenv = getfenv
 local oldSFenv = setfenv
 function getFenv(targ)
 	game.e"Depreciated function getFenv called" 
-	return oldGFenv(targ)
+	if targ ~= 0 then 
+		return oldGFenv(targ)
+	end 
 end 
 function setFenv(targ,env)
 	game.e"Depreciated function setFenv called" 
@@ -730,7 +754,7 @@ local function timekeeping()
         year,month,day,clocktime,pm=getRealTime(osStuff.settings.timeDif,osStuff.settings.timeDifPlus)
       end 
       --print("Year "..year.." on the "..day.." of "..month..", "..clocktime)
-      os.queueEvent"clocktick"
+      --os.queueEvent"clocktick"
     end 
     sleep(1)
   end  
@@ -788,10 +812,19 @@ local props = {}
 --local args = {}
 local dedList = {}
 local taskOrientation = {}
+local shells = {} --Implement shell functions so they repsond correctly to each routine  
+local tcolors = {}
+local ttcolors = {}
+local appWin = {} --App windows are windows that only show for 1 tab
+local globalWin = {} --Global windows show on all tabs
+local winProp = {} -- Window properties table
 local curRout
 local natTerm = term.current()
-function osStuff.newRoutine(name,funct,buf,bSizex,bSizey,dontrunFirstTime,_args)
+function osStuff.newRoutine(name,funct,buf,bSizex,bSizey,dontrunFirstTime,_args)--implement the double-name-prrevention system
 	--game.l(name)
+	if type(funct) ~= "function" then 
+		return false 
+	end 
 	if routines[name] then 
 		return false,1
 	end 
@@ -801,7 +834,8 @@ function osStuff.newRoutine(name,funct,buf,bSizex,bSizey,dontrunFirstTime,_args)
 	else 
 		setfenv(funct,getfenv())
 	end 
-	routines[name] = coroutine.create(function() return pcall(funct,unpack(_args or {}) ) end )
+	
+	routines[name] = coroutine.create(function() local _,err= pcall(funct,unpack(_args or {}) ) game.e(err) return err end )
 	--args[name] = _args 
 	
 	if (not bSizex) or (not bSizey) then 
@@ -823,9 +857,54 @@ function osStuff.newRoutine(name,funct,buf,bSizex,bSizey,dontrunFirstTime,_args)
 		local _ 
 		_,requests[name]=coroutine.resume(routines[name])
 		term.redirect(a)
+		curRout=prev
 	end 
 	return true 
 end 
+function osStuff.newWindow(rName,name,funct,buf,bSizex,bSizey,noRun,_args,x,y,hasBar,windowTitle)
+	local realname = osStuff.newRoutine(name,funct,buf,bSizex,bSizey,noRun,_args)
+	buffers[name].setActivePos(x,y+1)
+	winProp[name] = {}
+	winProp[name]["x"],winProp[name]["y"],winProp[name]["bSizex"],winProp[name]["bSizey"],winProp[name]["hasBar"],winProp[name]["title"],winProp[name].name = x,y,bSizex,bSizey,hasBar,windowTitle,name
+	if rName then
+		--appWin[rName]=appWin[rName] or {}
+		appWin[rName]= name
+	else 
+		globalWin[name]=true 
+		--globalWin[name].name=name
+	end
+--	winProp[name]=name 
+
+	
+end 
+local function doWindow(tWin,buf)
+	--print(textutils.serialize(tWin))
+	buf.newNozone(tWin.x,tWin.bSizex+1,tWin.y,tWin.bSizey)
+	if (buffers[tWin.name] or {}).bufferBlit then 
+		buffers[tWin.name].bufferBlit(tWin.x,tWin.y+1)
+	end 
+	if tWin.hasBar then
+		term.redirect(natTerm)
+		paintutils.drawLine(tWin.x,tWin.y+osStuff.settings.tabOffsetY,tWin.bSizex+tWin.x,tWin.y+osStuff.settings.tabOffsetY,osStuff.settings.windows.windowsTopColor)
+		term.setCursorPos(((tWin.bSizex-#tWin.title)/2)+tWin.x,tWin.y+osStuff.settings.tabOffsetY)
+		term.setTextColor(osStuff.settings.windows.windowsTextColor)
+		term.write(tWin.title)
+		term.redirect(oriBuffers[curRout])
+		sleep(1)
+		
+ --[[
+		local _,tW = term.getSize()
+		term.setCursorPos((tW-#tWin.title)/2,tWin.y-2)
+		term.setBackgroundColor(colors.red)
+		term.setTextColor(colors.white)
+		term.write(title)
+		--sleep(1)]]
+	end 
+
+end
+function tdeb(a)
+	doWindow(winProp.window,a)
+end
 local function killRoutine(name)
 	routines[name] = nil
 	buffers[name] = nil
@@ -868,6 +947,9 @@ function osStuff.listRoutines()
 end 
 local lastActive
 function osStuff.legacyMakeActive(name)--*not* depreciated 
+	if not name then 
+		return false 
+	end 
 	if lastActive then 
 		active[lastActive] = false
 		if oriBuffers[lastActive] then 
@@ -882,27 +964,52 @@ function osStuff.legacyMakeActive(name)--*not* depreciated
 	if oriBuffers[name] then
 		if oriBuffers[name].makeActive  then 
 			if props[name].selfRender then 
+				game.l"lActBlit"
 				oriBuffers[name].bufferblit()
 			else 
 				oriBuffers[name].makeActive() 
 			end 
 		end 
 	end 
+	--refresh menu color 
+	osStuff.settings.gc.mColor = tcolors[name] or osStuff.settings.gc.menuBColor
+	osStuff.settings.gc.tColor = ttcolors[name] or osStuff.settings.gc.menuTColor
+	--env.osStuff.settings =osStuff.settings 
+	--game.l("CHANGE COLOR TO "..tostring(osStuff.settings.gc.mColor).."should be "..tostring(tcolors[name]))
 end 
 function osStuff.returnLegacyActive() 
 	return lastActive
+end 
+function osStuff.isActive(name)
+	return active[name]
 end 
 function osStuff.makeActive(name)
 	active[name] = true 
 	if oriBuffers[name] then 
 		if oriBuffers[name].makeActive then 
-			if props[name].selfRender then 
+			if (props[name] or {}).selfRender then 
+				game.l"actBlit"
 				oriBuffers[name].bufferblit()
 			else 
 				oriBuffers[name].makeActive() 
 			end 
 		end 
 	end 
+end
+function osStuff.changeMenuColor(color,tcolor)
+	--game.l("CHANGE MENU COLOR"..curRout)
+	if active[curRout] then 
+		--print"ActChange"
+		osStuff.settings.gc.mColor = color or osStuff.settings.gc.menuBColor
+		osStuff.settings.gc.tColor = tcolor or osStuff.settings.gc.menuTColor
+		os.queueEvent"refreshMenu"
+	end 
+	tcolors[curRout] = color 
+	ttcolors[curRout] =tcolor
+end 
+--function osStuff.deb()return tcolors,curRout end
+function osStuff.returnMyName() 
+	return curRout 
 end 
 local foucusedEvents = {key =true,paste=true,char=true,mouse_click=true,mouse_drag=true,mouse_scroll=true,menu_press=true,key_up=true,mouse_up=true,terminate=true}--I'm pretty sure this is spelled wrong
 local mouseEvents = {mouse_click=true,mouse_drag=true,mouse_scroll=true,mouse_up=true}
@@ -923,39 +1030,42 @@ local function initRoutines()
 	while true do 
 		local evts = {coroutine.yield()}
 		for name,routineCo in pairs(routines) do 
-			if (active[name]) or (not foucusedEvents[evts[1]]) then
-				if (requests[name] ==evts[1]) or (not requests[name]) then 
-					--check if it's a mouse event
-					if mouseEvents[evts[1]] and type(props[name]) == "table" then 
-						evts[3]=evts[3]-(props[name].bufLocx or 1)+1
-						evts[4]=evts[4]-(props[name].bufLocy or 1)+1
-					end  
-					if coroutine.status(routines[name]) ~="dead" then
-					if  ( (not mouseEvents[evts[1]]) or (evts[3] > 0 and evts[4] > 0) ) then  
-						curRout = name
-						term.redirect(buffers[name])
-						ok,requests[name] = coroutine.resume(routines[name],unpack(evts))
-						--game.l("r "..name.." "..tostring(requests[name]).."+"..tostring(test))
-						if not ok then 
-							game.l("Routine "..name.." encountered error "..requests[name])
+			if coroutine.status(routines[name]) =="suspended" then
+				if (active[name]) or (not foucusedEvents[evts[1]]) then
+					if (requests[name] ==evts[1]) or (not requests[name]) then 
+						--check if it's a mouse event
+						if mouseEvents[evts[1]] and type(props[name]) == "table" then 
+							evts[3]=evts[3]-(props[name].bufLocx or 1)+1
+							evts[4]=evts[4]-(props[name].bufLocy or 1)+1
+						end  
+						if  ( (not mouseEvents[evts[1]]) or (evts[3] > 0 and evts[4] > 0) ) then  
+							curRout = name
+							term.redirect(buffers[name])
+							ok,requests[name] = coroutine.resume(routines[name],unpack(evts))
+							--game.l("r "..name.." "..tostring(requests[name]).."+"..tostring(test))
+							if not ok then 
+								game.l("Routine "..name.." encountered error "..requests[name])
+							end 
+						end 
+					
+						if mouseEvents[evts[1]] and type(props[name]) == "table" then --a bit of a bad fix, will make better later
+							evts[3]=(evts[3]+(props[name].bufLocx or 1))-1 
+							evts[4]=(evts[4]+(props[name].bufLocy or 1))-1 
 						end 
 					end 
-					else --RIP in peace
-						game.l("Routine "..name.."("..tostring(requests[name])..") died. Will be GC'd at the end of this cycle.")
-						dedList[#dedList+1]=name
-					end 
-					if mouseEvents[evts[1]] and type(props[name]) == "table" then --a bit of a bad fix, will make better later
-						evts[3]=(evts[3]+(props[name].bufLocx or 1))-1 
-						evts[4]=(evts[4]+(props[name].bufLocy or 1))-1 
-					end 
 				end 
+			else --RIP in peace
+				game.l("Routine "..name.."("..tostring(requests[name])..") died. Will be GC'd at the end of this cycle.")
+				dedList[#dedList+1]=name
 			end 
 		end 
 		--GCing
 		for i=1,#dedList do 
 			killRoutine(dedList[i])
+			game.l(tostring(i).." : Garbage collected "..dedList[i])
+			dedList[i]=nil
 		end 
-		dedList={}
+		--dedList={}
 	end 
 end 
 local termx,termy=term.getSize()
@@ -964,26 +1074,30 @@ function osStuff.spawnApp(name,funct,taskBackColor,taskTextColor,taskText,selfRe
 	while routines[name] do 
 		name=name.."|"
 	end 
-	osStuff.newRoutine(name,funct,true,termx,termy-1,true,args)
-	buffers[name].setActivePos(1,2)
-	props[name] = {}
-	props[name].bufLocx = 1
-	props[name].bufLocy = 2
-	props[name].taskBackColor = taskBackColor
-	props[name].taskTextColor = taskTextColor
-	props[name].taskText = taskText
-	props[name].type = 1--1 = fullscreen(ish) tabbed 
-	props[name].menu = {}
-	props[name].selfRender = selfRender
-	taskOrientation[#taskOrientation+1] = name
-	local prev,a = curRout,term.current()
-	curRout = name 
-	term.redirect(buffers[name])
-	local _ 
-	_,requests[name]=coroutine.resume(routines[name])
-	term.redirect(a)
-	os.queueEvent"appSpawned"
-	return name
+	if osStuff.newRoutine(name,funct,true,termx,termy-1,true,args) then 
+		buffers[name].setActivePos(1,2)
+		props[name] = {}
+		props[name].bufLocx = 1
+		props[name].bufLocy = 2
+		props[name].taskBackColor = taskBackColor
+		props[name].taskTextColor = taskTextColor
+		props[name].taskText = taskText
+		props[name].type = 1--1 = fullscreen(ish) tabbed 
+		props[name].menu = {}
+		props[name].selfRender = selfRender
+		taskOrientation[#taskOrientation+1] = name
+		local prev,a = curRout,term.current()
+		curRout = name 
+		term.redirect(buffers[name])
+		local _ 
+		_,requests[name]=coroutine.resume(routines[name])
+		term.redirect(a)
+		curRout=prev
+		os.queueEvent"appSpawned"
+		return name
+	else 
+		return false
+	end 
 end 
 function osStuff.updateMenu(menutable)
 	props[curRout].menu = menutable
@@ -993,7 +1107,8 @@ function osStuff.returnTaskstuffs()
 	return props,taskOrientation
 end 
 function osStuff.renderMe()--redo with variable buffer positions
-	if active[curRout] then 
+	game.l"rM"
+	if active[curRout] and (props[curRout] or {}).selfRender then 
 		if (oriBuffers[curRout] or {}).bufferblit then 
 			term.redirect(natTerm)
 			oriBuffers[curRout].bufferblit(0,1)
@@ -1043,7 +1158,7 @@ if a then
 		sleep(5)
 	end 
 else 
-	print"\nWarning: Language file is missing or has errors. lan.osLookWeird. lan.exampleOfWeird"
+	print"\nWarning: Language file has errors. lan.osLookWeird. lan.exampleOfWeird"
 	sleep(4)
 end 
 local lan = setmetatable({},{__index=function(self,input) local res,same = osStuff.g(input) if same then return "lan."..res end return res end })
@@ -1095,13 +1210,258 @@ function term.clear()
 end 
 function osStuff.didClear() return didClear end 
 function osStuff.resetClear() didClear = false end 
-local accType,accPass
 local open = fs.open 
 function osStuff.doSplash()
 	local whichSplash = math.random(1,#osStuff.splashes)
 	--print the splash
 	osStuff.specialPrint(osStuff.splashes[whichSplash])
 end 
+local function pswd()
+	--just in case
+	if not fs.exists"library/acc/admin" then 
+	  fs.makeDir"library/acc/admin"
+	end 
+
+
+
+
+
+	local ok,accType,pass=pcall(function()
+			--temp:
+		if not game then game={} function game.l(a) end end 
+
+		local osStuff = osStuff or {}
+		osStuff.prgName = osStuff.prgName or function(path)--ripped from osStuff
+			string.gsub(path,"/","\\")
+			local a
+			while true do 
+				a=string.find(path,"/")
+				if not a then 
+					break
+				end 
+				path = string.sub( path, a+1, #path )
+			end 
+			return path 
+		end 
+		osStuff.g = osStuff.g or function(a) return a end --they'll see reeeaally shortened, bad-grammered, engrish versions of everything
+		osStuff.p = osStuff.p or function(a) print(a) end 
+
+		--get password
+		
+		--find accs
+		local b = fs.list"/library/acc/"
+		for i=1,#b do 
+			if b[i]=="admin" then 
+				table.remove(b,i)
+			end 
+		end 
+		local a = fs.list"/library/acc/admin"
+		for i,o in pairs(a) do
+			table.insert(b,"admin/"..o)
+		end 
+		local pass
+
+		if b[1] then
+			local c
+			local z = function(a) if not a then osStuff.p'usrNoExist' end return a end
+			repeat
+				osStuff.p"entUsr"
+				local usr = read()
+				for i=1,#b do 
+					if osStuff.prgName("/library/acc/"..b[i])==usr then 
+						c=i
+					end 
+				end 
+			until z(c)
+			if c then 
+				local f = open("library/acc/"..b[c],"r")
+				if f then 
+					pass=f.readAll()
+					f.close()
+				else 
+					osStuff.p'usrNoExist'
+					while true do coroutine.yield() end 
+				end
+				for i=1,4 do
+					print("("..osStuff.g"attempt"..tostring(i).."/4) "..osStuff.g"plzentpass")
+					local input = read"*"
+					if input == pass then 
+						--is type admin?
+						if string.sub(b[c],1,5) =='admin' then 
+							return "admin",pass
+						end 
+						return "guest",pass
+					end 
+				end
+				osStuff.p('outAttempt')
+				while true do coroutine.yield() end
+			end
+		else 
+			local input
+			while true do 
+				osStuff.p('noPassFound')
+				input = read()
+				print"Confirm:"
+				if read() == input then 
+					break 
+				end
+			end
+			--write 
+			local f=open("library/acc/admin/root","w")
+			f.writeLine(input)
+			f.close()
+			--set permissions
+			print('Your user name is "root" and password is "'..input..'". "root" is an administrative account, and its password can be found @ /library/acc/admin/ . You will need to login to an administrative account and retype your password to view this.')
+			return "admin",input
+		end
+	end)
+	if not ok then
+		--something went wrong(they probably terminated it. They can do that all they want, they won't get into the computer.)
+		pcall(function() print"pswd has crashed. Please reboot." print(ok,accType) end)
+		while true do coroutine.yield() end 
+	end
+	game.l("Logging in as type "..accType)
+	return accType,pass
+end 
+local function guiPswd()
+	term.setCursorBlink(false)
+	term.setBackgroundColor(osStuff.settings.loginColor)
+	term.clear()
+	--just in case
+	if not fs.exists"library/acc/admin" then 
+	  fs.makeDir"library/acc/admin"
+	end 
+
+
+
+
+
+	local ok,accType,pass=pcall(function()
+			--temp:
+		if not game then game={} function game.l(a) end end 
+
+		local osStuff = osStuff or {}
+		osStuff.prgName = osStuff.prgName or function(path)--ripped from osStuff
+			string.gsub(path,"/","\\")
+			local a
+			while true do 
+				a=string.find(path,"/")
+				if not a then 
+					break
+				end 
+				path = string.sub( path, a+1, #path )
+			end 
+			return path 
+		end 
+		osStuff.g = osStuff.g or function(a) return a end --they'll see reeeaally shortened, bad-grammered, engrish versions of everything
+		osStuff.p = osStuff.p or function(a) print(a) end 
+
+		--get password
+		
+		--find accs
+		local b = fs.list"/library/acc/"
+		for i=1,#b do 
+			if b[i]=="admin" then 
+				table.remove(b,i)
+			end 
+		end 
+		local a = fs.list"/library/acc/admin"
+		for i,o in pairs(a) do
+			table.insert(b,"admin/"..o)
+		end 
+		local pass
+
+		if true then---false then--b[1] then
+			local c
+			local z = function(a) if not a then term.setBackgroundColor(osStuff.settings.loginColor) term.clear() env.osStuff.popup(nil,7,25,nil,osStuff.g('usrNoExist'),osStuff.g('accountNoExist'),false) end return a end
+			repeat --osStuff.textPopup(x,y,width,buttons,text,topText,dontuseXButton)
+				local ta=env.osStuff.textPopup(nil,7,25,{{x=2}},osStuff.g"entUsr",osStuff.g"username",true)
+				for i=1,#b do 
+					if osStuff.prgName("/library/acc/"..b[i])==(ta or {})[1] then 
+						c=i
+					end 
+				end 
+			until z(c)
+			if c then 
+				local f = open("library/acc/"..b[c],"r")
+				if f then 
+					pass=f.readAll()
+					f.close()
+				else 
+					osStuff.p'usrNoExist'
+					while true do coroutine.yield() end 
+				end
+				for i=1,4 do
+					local ta=env.osStuff.textPopup(nil,7,25,{{x=2}},osStuff.g"plzentpass",osStuff.g"attempt"..tostring(i).."/4",true,"*")
+					if (ta or {})[1] == pass then 
+						--is type admin?
+						term.setBackgroundColor(osStuff.backColor)
+						term.setTextColor(osStuff.textColor)
+						term.clear()
+						term.setCursorPos(1,1)
+						if string.sub(b[c],1,5) =='admin' then 
+							return "admin",pass
+						end 
+						return "guest",pass
+					end 
+				end
+				term.setBackgroundColor(osStuff.settings.loginColor)
+				term.clear()
+				env.osStuff.popup(nil,7,25,{},osStuff.g('outAttempt'),osStuff.g('outAttempt'),true)
+				while true do coroutine.yield() end
+			end
+		else 
+			local input
+			while true do 
+				input = env.osStuff.textPopup(nil,7,25,{{x=2}},osStuff.g('noPassFound'),osStuff.g'mkAccount',true,"*")
+				if input then 
+					--print"Confirm:"
+					term.setBackgroundColor(osStuff.settings.loginColor)
+					term.clear()
+					local confirm = env.osStuff.textPopup(nil,7,25,{{x=2}},osStuff.g('confirmMore'),osStuff.g'confirm',true,"*")
+					if  (confirm or {})[1] == input[1] then 
+						break 
+					else 
+						term.setBackgroundColor(osStuff.settings.loginColor)
+						term.clear()
+						env.osStuff.popup(nil,7,25,nil,osStuff.g('passNoMatch'),osStuff.g('failed'))
+					end
+				end 
+			end
+			--write 
+			local f=open("library/acc/admin/root","w")
+			f.writeLine(input[1])
+			f.close()
+			--set permissions
+			env.osStuff.popup(nil,4,25,nil,'Your user name is "root" and password is "'..input[1]..'". "root" is an administrative account, and its password can be found @ /library/acc/admin/ . You will need to login to an administrative account and retype your password to view this.','Success!')
+			term.setBackgroundColor(osStuff.backColor)
+			term.setTextColor(osStuff.textColor)
+			term.clear()
+			term.setCursorPos(1,1)
+			return "admin",input[1]
+		end
+	end)
+	if not ok then
+		--something went wrong(they probably terminated it. They can do that all they want, they won't get into the computer.)
+		pcall(function() print"pswd has crashed. Please reboot." print(ok,accType) end)
+		while true do coroutine.yield() end 
+	end
+	game.l("Logging in as type "..accType)
+	return accType,pass
+end 
+
+
+
+
+
+
+
+
+
+
+
+
+
 function osStuff.int()--should be init, but too late to change it now
 	--game.quit()
 	--os.loadAPI"Game-Engine/game"--this is to fix issues with term.redirect() inside game-engine, aswell as get it into the correct environment
@@ -1113,7 +1473,6 @@ function osStuff.int()--should be init, but too late to change it now
 	end 
 	game.l("_VERSION : "..(_VERSION or "nil").." , _LUAJ_VERSION : "..(_LUAJ_VERSION or "nil").." , _CC_VERSION : "..(_CC_VERSION or "nil").." , _MC_VERSION : "..(_MC_VERSION or "nil").." , osStuff.version : "..tostring(osStuff.version).." , setfenv availiable : "..tostring(hasFenv))
 	osStuff.loadSettings()
-
 	sleep(0)
 	
 	runStartups('library/api',1,'library/api')
@@ -1149,18 +1508,23 @@ function osStuff.int()--should be init, but too late to change it now
 	term.setCursorBlink(true)
 	--request password
 	if args[3]~="nopass" then 
-		local a = loadfile"library/pswd"
-		local ok,err,pss=pcall(a,open)--pswd is allowed full fs access
+		--local a = loadfile"library/pswd"
+		local ok,err,pss
+		if osStuff.settings.graphicalLogin then 
+			ok,err,pss=pcall(guiPswd)--pswd is allowed full fs access
+		else 
+			ok,err,pss=pcall(pswd)
+		end 
 		accType = err
 		accPass = pss
 		if not ok then
-			print"Could not open library/pswd. Hanging."
+			print("pswd had error "..tostring(err).." . Hanging.")
 			while true do 
 				coroutine.yield() 
 			end 
 		end 
 	end
-	--display MOTD
+		--display MOTD
 	local a = fs.open("/library/motd","r")
 	local f 
 	if a then 
@@ -1168,13 +1532,7 @@ function osStuff.int()--should be init, but too late to change it now
 	a.close() 
 	end 
 	print(f or "a")
-	if r==3 then 
-		print"Badwolf badwolf to badwolf the badwolf."
-	elseif r==2 then 
-		print"Type Illuminati to start the secrets browser."
-	elseif r==1 then 
-		print"Type GLaDOS to start GLaDOS."
-	else
+	if noDoPrints then 
 		print"Run startx to start the GUI."
 	end 
 	if runProg then 
@@ -1184,153 +1542,111 @@ function osStuff.int()--should be init, but too late to change it now
 
 	
 	runStartups("library/startup",1,"library/startup")
-
-	while true do 
-		osStuff.doMain()
+	if osStuff.settings.startxOnStart then 
+		osStuff.cRun("library/programs/startx",{})
 	end 
+	osStuff.doMain(true)
 end
 
-local pastCommands={}
-function osStuff.doMain()
-	osStuff.doDir()
-	--read input
-	term.setBackgroundColor(osStuff.backColor or 1)
-	term.setTextColor(osStuff.textColor or 1)
-	input = osStuff.readRecolored(nil,pastCommands,shell.complete,osStuff.settings.autoCompTColor,osStuff.settings.autoCompBGColor)
-	--add this to prev commands
-	if string.find(input,"%a") or string.find(input,"%d") then 
-	pastCommands[#pastCommands+1]=input
-	end
-	--sub the first part of the string out
-	local inFirstChar = string.sub(input,1,1) -- This section in need of recode
-	if inFirstChar ~=";" and inFirstChar~=":" then
-	--top priority: make it look cool, of course!
-	local _,y=term.getCursorPos()
-	term.setCursorPos(1,y-1)
-	osStuff.doDir()
-	term.setTextColor(osStuff.commandColor or 1)
-	--write(inFirstChar)
-	term.setTextColor(osStuff.textColor or 1)
-	--kindly done for me:
-	--input=string.sub(input,2,#input)
-	--write(input)
-	print() --move back to normal line
-	--[[if input =="clear" then
-		local runThis = loadfile"library/newClear"
-		runThis()
-	elseif input=="wipe"then
-		local runThis=loadfile"library/wipe"
-		runThis()
-	elseif input=="settings"then
-	
-		local runThis=loadfile"library/settings"
-		runThis=osStuff.giveFenv(runThis)
-		runThis()
-	else
-		
-	end]]
-	if input == "console" then 
-		game.openConsole()
-	--[[elseif input == "startx" then 
-		if term.isColor() then 
-		--start the GUI
-		print"not done"
-		print"^^Ignore that! He's lying!"
+function osStuff.doMain(noDoPrints)
+	if not noDoPrints then 
+		term.setBackgroundColor(osStuff.backColor or 1)
+		term.setTextColor(osStuff.textColor or 1)
+		term.clear()
+		term.setCursorPos(1,1)
+		term.setCursorBlink(false)
+		osStuff.specialPrint(osStuff.os.." V"..tostring(osStuff.version))
+		--let's select from one of our fine splashes
+		if args[1] ~="nosplash" then
+			osStuff.doSplash()
 
-		print"The GUI interface is starting NOW!"
 		else 
-		osStuff.p"noBasicGUI"
-		end]]
-	else 
-		osStuff.resetClear()
-		-- Execute the program
-		local pargs = tokenise(input)
-		local failed
-		if not pargs[1] then 
-		printError(osStuff.g"Nothing"..osStuff.g"noExist")
-		else
-		local prog=shell.resolveProgram(pargs[1])
-		runningProgram = prog
-		failed = pargs[1]
-		table.remove(pargs,1)
-		if prog then 
-			local failed
-			prog,failed = loadfile(prog,env)
-			if type(prog)=="function" then 
-			--setfenv(prog,env) replaced at loadfile
-			local ok,err = pcall(function() prog(unpack(pargs)) end)
-			term.redirect(cur)
-			if (not ok) and err then 
-				printError(err)
-			end 
-			else 
-			if failed then 
-				printError(failed)
-			end 
-			end 
-		else 
-			printError(failed..osStuff.g"noExist")
-		end 
-		end 
-		if osStuff.didClear() then 
-		local _,cury = term.getCursorPos()
-		local _,termy = term.getSize()        
-		term.setBackgroundColor(osStuff.backColor)
-		for i=cury,termy do           
-			term.setCursorPos(1,i)
-			term.clearLine()
+			term.setCursorPos(1,2)
 		end
-
-		term.setCursorPos(1,cury)
-		end 
-		-- Reset background colors: 
-		term.setBackgroundColor(osStuff.backColor)
-		term.setTextColor(osStuff.commandColor)
-	end
-	else
-	local inputF
-	--they're running a lua command
-	local _,y=term.getCursorPos()
-	term.setCursorPos(1,y-1)
-	osStuff.doDir()
-	term.setTextColor(osStuff.promptColor or 1)
-	term.setTextColor(osStuff.commandColor or 1)
-	write(inFirstChar)
-	term.setTextColor(osStuff.textColor or 1)
-	input=string.sub(input,2,#input)
-	print(input)
-	--make it into a command:
-	--[[Brief:
-	If it will work as "return ".. , 1
-	If it will work as plain, 2
-	--
-	1:
-	Print what it returns
-	--
-	2: 
-	Print the value through serialization
-	]]
-	local returnAsVar = loadstring(" return "..input)
-	local normal = loadstring(input)
-	if type(returnAsVar) == "function" then 
-		normal = returnAsVar
-	elseif type(normal) ~="function" then 
-		printError(normal)
+		term.setCursorBlink(true)
 	end 
-	setfenv(normal,env) 
-	local ok,res = pcall(normal)
-	if ok then 
-		local ok2, res2 = pcall(textutils.serialize, res)
-		if ok2 then 
-		print(res2)
+	local pastCommands={}
+	while true do 
+		local noDo
+		osStuff.doDir()
+		--read input
+		term.setBackgroundColor(osStuff.backColor or 1)
+		term.setTextColor(osStuff.textColor or 1)
+		input = osStuff.readRecolored(nil,pastCommands,shell.complete,osStuff.settings.autoCompTColor,osStuff.settings.autoCompBGColor)
+		--add this to prev commands
+		if string.find(input,"%a") or string.find(input,"%d") then 
+			pastCommands[#pastCommands+1]=input
 		else 
-		print(tostring(res))
-		end 
-	else 
-		printError(res)
-	end 
+			noDo =true
+			printError(osStuff.g"Nothing"..osStuff.g"noExist")
+		end
+		--sub the first part of the string out
+		local inFirstChar = string.sub(input,1,1)
+		if inFirstChar ~=";" and inFirstChar~=":" then
+			if not noDo then 
+				local _,y=term.getCursorPos()
+				term.setCursorPos(1,y-1)
+				osStuff.doDir()
+				term.setTextColor(osStuff.commandColor or 1)
+				term.setTextColor(osStuff.textColor or 1)
+				print()
+				if input == "console" then 
+					game.openConsole()
+				else 
+					osStuff.resetClear()
+					local oldCur = term.current()
+					env.shell.run(input)
+					term.redirect(oldCur)
+					if osStuff.didClear() then 
+						local _,cury = term.getCursorPos()
+						local _,termy = term.getSize()        
+						term.setBackgroundColor(osStuff.backColor)
+						for i=cury,termy do           
+							term.setCursorPos(1,i)
+							term.clearLine()
+						end
+
+						term.setCursorPos(1,cury)
+					end 
+					-- Reset background colors: 
+					term.setBackgroundColor(osStuff.backColor)
+					term.setTextColor(osStuff.commandColor)
+				end
+			end 
+		else
+			local inputF
+			--they're running a lua command
+			--[[local _,y=term.getCursorPos() recode this
+			term.setCursorPos(1,y-1)
+			osStuff.doDir()
+			term.setTextColor(osStuff.promptColor or 1)
+			term.setTextColor(osStuff.commandColor or 1)
+			write(inFirstChar)
+			term.setTextColor(osStuff.textColor or 1)
+			input=string.sub(input,2,#input)
+			print(input)
+			local returnAsVar = loadstring(" return "..input)
+			local normal = loadstring(input)
+			if type(returnAsVar) == "function" then 
+				normal = returnAsVar
+			elseif type(normal) ~="function" then 
+				printError(normal)
+			end 
+			setfenv(normal,env) 
+			local ok,res = pcall(normal)
+			if ok then 
+				local ok2, res2 = pcall(textutils.serialize, res)
+				if ok2 then 
+				print(res2)
+				else 
+				print(tostring(res))
+				end 
+			else 
+				printError(res)
+			end ]]
+		end
 	end
-end
+end 
 
 
 
@@ -1637,6 +1953,9 @@ function fs.isReadOnly(file)
 	if type(file) ~= "string" then 
 		error("fs.isReadOnly - Expected string",2)
 	end 
+	if string.sub(resolve(file),1,6) == ".meta/"  then 
+		return true 
+	end
 	if isDir(file) then 
 		local level = math.min( lowestPerms(file,accType) , lowestPerms(file,appAccount) )
 		if level == 1 then 
@@ -1645,9 +1964,7 @@ function fs.isReadOnly(file)
 			return "noAccess"
 		end 
 	end 
-	if string.sub(resolve(file),1,6) == ".meta/"  then 
-		return true 
-	end
+	
 
 	local a = getFile(file)
 	local user,app
@@ -1874,6 +2191,24 @@ end
 --------------------------------
 
 --Settings stuff:
+
+local function sdeepcopy(settings,file)
+	for i,o in pairs(settings) do 
+		game.l("get "..tostring(i))
+		if type(settings[i])==type(file[i]) then 
+			if type(settings[i])=="table" then 
+				game.l("table")
+				settings[i]=sdeepcopy(settings[i],file[i])
+			else 
+				game.l"n"
+				settings[i]=file[i]
+			end 
+		else 
+			game.l("s "..type(settings[i]).." f "..type(file[i]))
+		end 
+	end 
+	return settings
+end
 function osStuff.loadSettings()
 	--open the file
 	local f = open("library/settings","r")
@@ -1884,14 +2219,20 @@ function osStuff.loadSettings()
 	fle = textutils.unserialize(fle)
 	if not fle then return false end 
 	print"y"
-	for i,o in pairs(osStuff.settings) do 
-		--[[game.l(tostring(i))
-		game.l("s "..tostring(fle[i]))]]
+	--[[for i,o in pairs(osStuff.settings) do 
+		game.l(tostring(i))
+		game.l("s "..tostring(fle[i]))
 		if type(fle[i]) == type(osStuff.settings[i])  then 
-			osStuff.settings[i] = fle[i]
-			env.osStuff.settings[i] =fle[i]
+			if type(fle[i]) == "table" then 
+				settingsRecurser(i)
+			else 
+				osStuff.settings[i] = fle[i]
+				env.osStuff.settings[i] =fle[i]
+			end 
 		end 
-	end
+	end]]
+	osStuff.settings = sdeepcopy(osStuff.settings,fle)
+	--env.osStuff.settings = osStuff.settings
 end 
 
 
@@ -1934,7 +2275,7 @@ function osStuff.runInKernelSpace(sprg,args,pass)
 				return 3,er 
 			end 
 		end 
-		return pcall(prg,unpack(args or {}))
+		return pcall(sprg,unpack(args or {}))
 	else 
 		lastTime=os.time()
 		return 2
@@ -1979,7 +2320,7 @@ local function deepcopy(orig)
 end
 
 local runningProgram
-loadfile = function( _sFile, _tEnv )
+--[[loadfile = function( _sFile, _tEnv )
 	local file = env.fs.open( _sFile, "r" )
 	if file then
 		local func, err = load( file.readAll(), fs.getName( _sFile ), "t", _tEnv )
@@ -1987,8 +2328,33 @@ loadfile = function( _sFile, _tEnv )
 		return func, err
 	end
 	return nil, "File not found"
-end
+end]]
 env = deepcopy(_G)
+local function r(input)
+	local func = load("return osStuff.settings."..input,"settings","t",myEnv)
+	if func then 
+		return func() 
+	end 
+end 
+
+--[[env.osStuff.settings = setmetatable({},
+{__index=function(self,input,next)
+	game.l"getSet"
+	local func = load("return osStuff.settings."..input,"settings","t",myEnv)
+	if func then 
+		return func() 
+	end 
+    game.l(input.. " l "..tostring(next))
+	if input=="gc" and next=="mColor" then 
+		print"g"
+		return osStuff.settings.gc.mColor 
+	end 
+	--setfenv(r,myEnv)
+	return r(input)
+	return osStuff.settings[input]
+end })]]
+env.osStuff.settings = osStuff.settings
+
 --Overwiting printerror to use our colorscheme 
 function printError(txt)
 	--log to console
@@ -2001,29 +2367,16 @@ env.printError=printError
 --env = _G
 
 env.os.pullEvent = ospe
-local function run(prg,pargs)
-	pargs = pargs or {}
+local function run(prg, ... )
 	if not prg then 
 		printError(osStuff.g"Nothing"..osStuff.g"noExist")
 	else
 		local prog=env.shell.resolveProgram(prg)
 		runningProgram = prog
 		if prog then 
-			local failed
-			prog,failed = loadfile(prog,env)
-			if type(prog)=="function" then 
-				--setfenv(prog,env)          ^ replacement
-				local ok,err = pcall(function() if type(pargs) == "table" then pargs=unpack(pargs) end prog(pargs) end)
-				if (not ok) and err then 
-					printError(err)
-				end 
-			else 
-				if failed then 
-					printError(failed)
-				end 
-			end 
+			local result = env.os.run(env,prog,...)
 		else 
-			printError(prg..osStuff.g"noExist")
+			printError(prg.." does not exist")
 		end 
 	end 
 end 
@@ -2041,14 +2394,14 @@ function env.os.loadAPI(path)
 		cont[i] = o 
 	end 
 	env[fs.getName(path)] = cont
-	return true 
+	return true
 end 
 
-function os.run( _tEnv, _sPath, ... )
+function env.os.run( _tEnv, _sPath, ... )
 	local tArgs = { ... }
-	local tEnv = _tEnv
-	setmetatable( tEnv, { __index = env } ) 
-	local fnFile, err = loadfile( _sPath , tEnv)
+	--setmetatable( tEnv, { __index = env } ) 
+	local fnFile, err = loadfile( _sPath , _tEnv)
+	game.l(tostring(fnFile).." "..tostring(err).." : ".._sPath)
 	if fnFile then
 		--setmetatable( tEnv, { __index = function(t,k) return _G[k] end } )
 		--setfenv( fnFile, tEnv ) replaced in loadfile
@@ -2073,6 +2426,7 @@ function env.shell.run( ... )
 	local tWords = tokenise( ... )
 	local sCommand = tWords[1]
 	if sCommand then
+		runningProgram = sCommand
 		return run( sCommand, unpack( tWords, 2 ) )
 	end
 	return false
@@ -2117,11 +2471,11 @@ local function loadGame()
 	local gameWritetoConsole = env.game.writeToConsole
 	function env.game.writeToConsole(txt)
 	local year,month,day,clocktime,pm = (env.osStuff.getTime or function()end)()
-	return gameWritetoConsole("["..(clocktime or "Clock service not started yet").."] "..txt)
+	return gameWritetoConsole("["..(clocktime or "Clock service not started yet").."] "..tostring(txt))
 	end 
 	env.game.l = env.game.writeToConsole 
 	function env.game.writeErrorToConsole(txt)
-	game.writeToConsole("[ERROR] "..txt)
+	game.writeToConsole("[ERROR] "..tostring(txt))
 	return txt 
 	end 
 	env.game.e=env.game.writeErrorToConsole

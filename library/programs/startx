@@ -12,10 +12,7 @@ already done by the main script.
 
 
 ]]
-local args={...}
-term.clear()
-term.setCursorPos(1,1)
-local arr,mArr,deskBack = {},{},colors.lightBlue
+
 local function clScrn() 
 	term.setBackgroundColor(colors.black)
 	term.setTextColor(colors.white)
@@ -31,246 +28,6 @@ local function clScrn()
 	end 
 	term.setCursorPos(1,1)
 end 
-local bg = game.loadMapOld("library/defDesk", 0, 0,colors.white,colors.black,"?",51,18)
-local function refrshDeskBack()
-	--[[Brief:
-	Load where their image is,
-	render.
-	]]
-	--temp:
-	--term.setBackgroundColor(deskBack)
-	--term.clear()
-	--will use game-engine rather than paintutils later
-	--paintutils.drawImage(bg,1,1)
-	bg.render.blit(1,1,1,1)
-end 
-
-local folderIcn = game.loadMapOld("library/icon/folder", 0, 0,colors.white,colors.black,"?",4,3)
-local wtf = game.loadMapOld("library/icon/unknown", 0, 0,colors.white,colors.black,"?",4,3)
-local txt = game.loadMapOld("library/icon/txt", 0, 0,colors.white,colors.black,"?",4,3)
-local exedef = game.loadMapOld("library/icon/exedef", 0, 0,colors.white,colors.black,"?",4,3)
-local function renderIcons()
-game.l"renderdesk"
-	local stuff = fs.list("desktop/")
-	--game.l"ALIVE"
-	--folderIcn.render.blit(1,1)
-	for i=1,table.maxn(stuff) do 
-
-		if string.sub(stuff[i],1,1)~="." then 
-			arr[stuff[i]] = arr[stuff[i]] or {}
-			arr[stuff[i]].x = arr[stuff[i]].x or 1
-			arr[stuff[i]].y = arr[stuff[i]].y or 1
-			if (mArr[stuff[i]] or {}).icn then --fs.exists( fs.combine( fs.combine("desktop",stuff[i]) ,"iconOld") ) then 
-				term.setBackgroundColor(colors.black)
-				term.setTextColor(colors.white)
-				mArr[stuff[i]].icn.render.blit(1,1,arr[stuff[i]].x,arr[stuff[i]].y)
-			elseif osStuff.getExt(stuff[i]) == "txt" then 
-				txt.render.blit(1,1,arr[stuff[i]].x,arr[stuff[i]].y)
-			elseif osStuff.getExt(stuff[i])== "exe" then 
-				exedef.render.blit(1,1,arr[stuff[i]].x,arr[stuff[i]].y)
-			elseif fs.isDir( fs.combine("desktop",stuff[i]) ) then --this is last because some extensions are folders
-				folderIcn.render.blit(1,1,arr[stuff[i]].x,arr[stuff[i]].y)
-			else 
-				wtf.render.blit(1,1,arr[stuff[i]].x,arr[stuff[i]].y)
-			end 
-			--render the text below
-			local txt = stuff[i]
-			if string.sub(txt,#txt-3,#txt-3) == "." and (not osStuff.settings.desktop.showExtension) then 
-				txt=string.sub(txt,1,#txt-4)
-			end 
-			if #txt >= osStuff.settings.desktop.maxIcnLength then 
-				txt=string.sub(txt,1,osStuff.settings.desktop.maxIcnLength-2)..".."
-			end 
-			term.setBackgroundColor(deskBack)
-			term.setTextColor(colors.black)
-			term.setCursorPos(math.floor((4-#txt)/2)+arr[stuff[i]].x,arr[stuff[i]].y+3)
-			term.write(txt)
-		end 
-	end 
-end 
-local function saveArrange()
-	local f = fs.open("desktop/.arrange","w")
-	if not f then game.e"Couldn't open desktop/.arrange!" return false end 
-	local ser 
-	--[[local serializedArr = {}
-	for i,o in pairs(arr) do 
-		serializedArr[i]={}
-		for j,k in pairs(o) do 
-			if j~= "icn" then 
-				serializedArr[i][j]=k
-			end
-		end  
-	end ]]
-	ser = textutils.serialize(arr)
-	if not ser then game.e"Failed to serialize arrangement!" end 
-	f.write(ser)
-	f.close()
-end 
-local function loadArrange()
-	local f = fs.open("desktop/.arrange","r")
-	if not f then game.e"Couldn't open desktop/.arrange!" return false end 
-	local ser 
-	ser=f.readAll()
-	ser = textutils.unserialize(ser)
-	if not ser then game.e"Failed to serialize arrangement!" end 
-	f.close()
-	arr=ser
-	if not arr then 
-		arr = {}
-	end 
-	--load icons & settings
-	for i,o in pairs(arr or {}) do 
-		if fs.exists( fs.combine( fs.combine("desktop",i) ,"iconOld") ) then 
-			mArr[i]=mArr[i]or{}
-			mArr[i].icn  = game.loadMapOld(fs.combine(fs.combine("desktop/",i),"iconOld"), 0, 0,colors.white,colors.black,"?",4,3)
-		end
-		if fs.exists( fs.combine( fs.combine("desktop",i) ,"config.lua")  ) then 
-			mArr[i]=mArr[i]or{}
-			local conf,unSerCont = fs.open(fs.combine( fs.combine("desktop",i) ,"config.lua") ,"r")
-			game.l"s"
-			if conf then 
-				game.l"2"
-				unSerCont = conf.readAll()
-				conf.close() 
-				if unSerCont then 
-					game.l("suc "..i) 
-					mArr[i].cfg=textutils.unserialize(unSerCont)
-					game.l(tostring(mArr[i].cfg))
-				end
-			end 
-		end 
-	end  
-end 
---Desktop
-local function desktop() 
-	term.setCursorBlink(false)
-	loadArrange()
-	refrshDeskBack()
-	renderIcons()
-	saveArrange()
-	local pressing,dragged,rcBox
-	local function run() 
-		shell.run(osStuff.settings.extensions[osStuff.getExt(pressing)][1].." "..pressing) 
-	end 
-	while true do
-		local evts = {coroutine.yield()}
-		--game.l(textutils.serialize(evts))
-		--game.l"cy"
-		if evts[1] == "mouse_click" then --3  = x | 4 = y 
-			game.l"click"
-			if evts[2]==2 then 
-				if rcBox and ( not rcBox:check(evts) ) then 
-					refrshDeskBack()
-					renderIcons()
-				end 
-				if (not rcBox) or not rcBox:check(evts) then 
-					rcBox = osStuff.rightClick({"New file >","New Folder >",nil,"Properties >"},evts[3]+1,evts[4],colors.cyan,colors.gray)
-					rcBox:draw()
-				end 
-			else 
-				if rcBox then 
-					local check = rcBox:check(evts)
-					if check then 
-						game.l("clicked "..check)
-						if check == 1 or check==0 then 
-							local name = "New folder"
-							while true do 
-								if fs.exists(fs.combine("desktop",name)) then 
-									name=name.."-"
-								else 
-									break 
-								end 
-							end 
-							game.l(name)
-							if check ==1 then 
-								fs.makeDir(fs.combine("desktop",name))
-							else 
-								local file = fs.open(fs.combine("desktop",name),"w")
-								file.write("")
-								file.close()
-							end 
-						end 
-						rcBox = nil 
-						refrshDeskBack()
-						renderIcons()
-					else 
-						rcBox = nil 
-						refrshDeskBack()
-						renderIcons()
-					end 
-				else 
-					for i,o in pairs(arr) do 
-						if arr[i].x <= evts[3] then 
-							if arr[i].y <= evts[4] then 
-								if arr[i].x+4 >= evts[3] then 
-									if arr[i].y+4>= evts[4] then 
-										pressing = i
-									end 
-								end 
-							end 
-						end 
-					end 
-				end 
-			end 
-		elseif evts[1] == "mouse_drag" and pressing then 
-			arr[pressing].x=evts[3]
-			arr[pressing].y=evts[4]
-			refrshDeskBack()
-			renderIcons()
-			dragged=true 
-		elseif evts[1] == "mouse_up" and pressing then 
-			if dragged then 
-				dragged = false
-				saveArrange()
-			else 
-				game.l(" clickthing "..tostring(pressing))
-				if osStuff.getExt(pressing) == "exe" then 
-					local prg = loadfile(fs.combine("desktop",fs.combine(pressing,"main.lua")))
-					if prg then 
-						--game.l("~~SDGF~ "..tostring(mArr[pressing].cfg.selfRender))
-						local realname =osStuff.spawnApp(pressing,prg,( (mArr[pressing] or {}).cfg or {}).taskBackColor or colors.white,( (mArr[pressing] or {}).cfg or {}).taskTextColor or colors.black,( (mArr[pressing] or {}).cfg or {}).taskText or "?",( (mArr[pressing] or {}).cfg or {}).selfRender or false)
-						--osStuff.legacyMakeActive(realname)
-						os.queueEvent("makeLegAct",realname)
-					else 
-						game.e("Missing main.lua in executable "..pressing)
-					end  
-				else
-					local bgcolor,tcolor,txt = colors.white,colors.black,"?"
-					if (osStuff.settings.extensions[osStuff.getExt(pressing)] or {})[1] == "rom/programs/edit" then 
-						bgcolor,tcolor,txt = colors.black,colors.white,"E"
-					end 
-					if fs.isDir(fs.combine("desktop/",pressing)) then 
-						osStuff.spawnApp("Files.exe",loadfile("desktop/Files.exe/main.lua"),colors.orange,colors.black,"F",true,{fs.combine("desktop/",pressing)})
-						os.queueEvent("makeLegAct",realname)
-						--[[refrshDeskBack()
-						loadArrange()
-						renderIcons()]]
-					else 
-						osStuff.spawnApp(pressing,run,bgcolor,tcolor,txt)
-					end 
-				end 
-			end 
-			pressing=false
-		end 
-	end 
-end 
---NOTE: The desktop code will be replaced soon, and will exist in files, by passing it a second arg, "-desktop"
-local function tmp() while true do osStuff.doMain() end end 
-
-if args[1]=="-d" then 
-	desktop()
-end 
---local realname = osStuff.spawnApp("Files.exe_desktop",desktop,colors.blue,colors.gray,"D")--inb4 joke is made about this...
---os.queueEvent("makeLegAct",realname)
---osStuff.legacyMakeActive(realname)
---Menubar stuff:
-
---[[Menubar functionality:
--Update tasks everytime "appSpawned" event
--Update menu everytime "menu_update"
--Send "menu_press" events when stuff on menu clicked
-
-]]
 local props,ori = osStuff.returnTaskstuffs()
 local mY = 1
 local tsks
@@ -296,8 +53,8 @@ end
 local function refreshMisc()
 	local ox,oy = term.getCursorPos()
 	term.setCursorPos(1,mY)
-	term.setTextColor(osStuff.settings.gc.menuTColor)
-	term.setBackgroundColor(osStuff.settings.gc.menuBColor)
+	term.setTextColor(osStuff.settings.gc.tColor)
+	term.setBackgroundColor(osStuff.settings.gc.mColor)
 	term.write"OS"
 	term.setCursorPos(ox,oy)
 end 
@@ -305,8 +62,8 @@ local function refreshClock()
 	local ox,oy = term.getCursorPos()
 	local x,y = term.getSize()
 	term.setCursorPos(x-9,mY)	
-	term.setBackgroundColor(osStuff.settings.gc.menuBColor)
-	term.setTextColor(osStuff.settings.gc.menuTColor)
+	term.setBackgroundColor(osStuff.settings.gc.mColor)
+	term.setTextColor(osStuff.settings.gc.tColor)
 	local year,month,day,clocktime,pm = osStuff.getTime()
 	if (clocktime or ""):sub(2,2) == ":" then 
 		term.write" "
@@ -329,6 +86,15 @@ local function refreshDrpDwns()
 
 	term.setCursorPos(ox,oy)
 end 
+
+local function resetColors()
+	local buf = osStuff.getOriBuffer(osStuff.returnLegacyActive())
+	term.setBackgroundColor((buf or {}).bg or 1)
+	term.setTextColor((buf or {}).tc or 1 )
+	local buf = osStuff.getOriBuffer(osStuff.returnLegacyActive())
+	buf = buf or {}
+	term.setCursorPos((buf.x or 1)+(buf.pX or 1)-1,(buf.y or 1)+(buf.pY or 1)-1)
+end 
 local function refreshMenu()
 	refreshMisc()
 	--while our colors are set,
@@ -339,25 +105,23 @@ local function refreshMenu()
 	refreshTasks()
 	refreshClock()
 	refreshDrpDwns()
+	resetColors()
 end
-local function resetColors()
-	local buf = osStuff.getOriBuffer(osStuff.returnLegacyActive())
-	term.setBackgroundColor((buf or {}).bg or 1)
-	term.setTextColor((buf or {}).tc or 1 )
-end 
 local function act()
 	local buf = osStuff.getOriBuffer(osStuff.returnLegacyActive())
 	refreshMenu()
-	resetColors()
-	term.setCursorPos(buf.x+buf.pX-1,buf.y+buf.pY-1)
+	if buf then 
+		resetColors()
+		term.setCursorPos(buf.x+buf.pX-1,buf.y+buf.pY-1)
+	end 
 end
 
 local function menu()
-	sleep(0.1)--ghetto fix, buffer issues
+	--sleep(0.5)--ghetto fix, buffer issues
 	refreshMenu()
 	while true do 
 		local evt = {coroutine.yield()}
-		if evt[1] == "clocktick" then 
+		if evt[1] == "timer" then 
 			refreshClock()
 			resetColors()
 		elseif evt[1] == "appSpawned" then 
@@ -373,7 +137,8 @@ local function menu()
 			term.setCursorPos((buf.x or 1)+(buf.pX or 1)-1,(buf.y or 1)+(buf.pY or 1)-1)
 			resetColors()
 			
-			
+		elseif evt[1]=="refreshMenu" then 
+			refreshMenu()
 		elseif evt[1] == "menu_update" then 
 			refreshDrpDwns()
 			resetColors()
@@ -385,44 +150,55 @@ local function menu()
 			act()
 		elseif evt[1] == "key" then 
 			--osStuff.spawnApp("app",function() while true do sleep(0) end end, colors.black,colors.white,"a")
-		end
-		local _,pressed = game.checkButtons(tsks,evt)
-		if pressed then 
-			if evt[2]==3 and pressed ~= 1 and evt[1] ~="mouse_up" then 
-				game.l("Killing routine "..pressed)
-				osStuff.killRoutine(ori[pressed])
-				os.queueEvent"appKilled"
-				coroutine.yield"appKilled"
-				props,ori = osStuff.returnTaskstuffs()
-				osStuff.legacyMakeActive("Files.exe_desktopApp")
-				refreshMenu()
-				local buf = osStuff.getOriBuffer(osStuff.returnLegacyActive())
-				buf = buf or {}
-				term.setCursorPos((buf.x or 1)+(buf.pX or 1)-1,(buf.y or 1)+(buf.pY or 1)-1)
-				resetColors()
-			else 
-				clScrn()
-				--game.l("~~ "..pressed.." + "..ori[pressed])
-				osStuff.legacyMakeActive(ori[pressed])
-				act()
+		elseif evt[1]=="mouse_click" or evt[1]=="mouse_drag" then
+			local _,pressed = game.checkButtons(tsks,evt)
+			if pressed then 
+				if evt[2]==3 then
+					if pressed ~=1 and evt[1]~="mouse_drag" then 
+						game.l("Killing routine "..pressed)
+						osStuff.killRoutine(ori[pressed])
+						os.queueEvent"appKilled"
+						coroutine.yield"appKilled"
+						props,ori = osStuff.returnTaskstuffs()
+						osStuff.legacyMakeActive("Files.exe_desktopApp")
+						refreshMenu()
+						local buf = osStuff.getOriBuffer(osStuff.returnLegacyActive())
+						buf = buf or {}
+						term.setCursorPos((buf.x or 1)+(buf.pX or 1)-1,(buf.y or 1)+(buf.pY or 1)-1)
+						resetColors()
+					end 
+				else 
+					clScrn()
+					--game.l("~~ "..pressed.." + "..ori[pressed])
+					osStuff.legacyMakeActive(ori[pressed])
+					act()
+				end 
 			end 
+		elseif evt[1]=="char" and evt[2]=="\\" then --temp
+			shell.run'library/api/nokernel.lua'--temp
+			local buf = osStuff.getOriBuffer(osStuff.returnLegacyActive())
+			buf.newNozone(2,25,2,14)
+			osStuff.menuBar()
 		end 
-		--term.setCursorPos(1,2) write"               " term.setCursorPos(1,2) write(evt[1])
 	end 
-
-
 end 
 osStuff.newDaemon(menu,"menu")
 osStuff.makeActive("menud")
-local realname = osStuff.spawnApp("Files.exe_desktop",loadfile("desktop/Files.exe/main.lua"),colors.blue,colors.black,"D",true,{"-desktop","desktop/"})
+local realname
+if osStuff.settings.desktop.isCommandPrompt then 
+	realname = osStuff.spawnApp("Files.exe_desktop",loadfile("desktop/Term.exe/main.lua"),colors.blue,colors.black,"D",true,{"desktop/"})
+else 
+	realname = osStuff.spawnApp("Files.exe_desktop",loadfile("desktop/Files.exe/main.lua"),colors.blue,colors.black,"D",true,{"-desktop","desktop/"})
+end 
 osStuff.legacyMakeActive("Files.exe_desktopApp")
---shell.run'spwnR'
-while true do coroutine.yield() end --hang the term
+osStuff.killRoutine(osStuff.returnMyName())
+
+while true do coroutine.yield() end --hang the term, just in case 
 --[[
-            |
 			|
 			|
-		    O
+			|
+			O
 		   -|-  < Term
 		   / \ 
 ]]

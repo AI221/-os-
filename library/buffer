@@ -1,4 +1,7 @@
-
+clrLk = {}
+for n=1,16 do
+	clrLk[2^(n-1)] = string.sub( "0123456789abcdef",n,n ) 
+end 
 
 --CONFIG:
 local lazy = false
@@ -16,7 +19,7 @@ Default value: false
 ]]
 --[[A NOTE ON EXESSIVE OP COUNT INCRECIMENT:
 Due to the way Lua works, if you get a rediculously high number(like, if you left something running without ever de-foucusing and re-foucusing it for several months), this script WILL break.
-That said, if you ever get a legitiment case of this happening, let me know, so I can congratulate you on your lack of a life.
+That said, if you ever get a legitiment case of this happening, let me know.
 ]]
 local function yield()
 	os.queueEvent"bufferYield"
@@ -41,19 +44,60 @@ function newBuf(w,h,nativeT)
 	w,h = (w or a),(h or b)
 	local self = {}
 	local function clearLine(l) 
+		error"DFGDFGSDFGDFSGF"
 		l= l or 1 
-		local white = ""
-		for i=1,self.getSize() do 
-			white = white.." "
-		end 
 		local x,y = self.getCursorPos()
-		--term.setBackgroundColor(colors.black)
-		self.t.setCursorPos(1,l+(self.pY-1))
 		self.t.setBackgroundColor(self.bg)
+		for y=1,self.getSize() do 
+			for i=1,self.sizex do 
+				if not (self.nr[l+(self.pX-1)] or {})[(self.pX-1)+i] then 
+					self.t.setCursorPos((self.pX-1)+i,l+(self.pY-1))
+					self.t.write" "
+				end 
+			end 
+			
+		end 
+		--term.setBackgroundColor(colors.black)
 		self.t.write(white)
 		self.t.setCursorPos(x,y)
 	end 
-	function deepcopy(orig)--taken from http://lua-users.org/wiki/CopyTable
+	local function refreshY(ry,Y,x,y)
+		local tx,ty = term.getSize()
+		if self[ry] then 
+			local txt,tColor,bColor = "","",""
+			local px =1 
+			for X=1+x,tx+x do
+				local rx = X-x
+--				game.l("rx : "..rx.." ry "..ry.." X "..X.." Y "..Y)
+				if (self.nr[ry] or {})[rx] then
+					game.l"caught"
+					if txt~="" then --We need to blit stuff before the nozone, if there is anything there.
+						game.l"entr"
+						self.t.setCursorPos(px,Y)
+						self.t.blit(txt,tColor,bColor)
+						--sleep(1)
+						txt,tColor,bColor = "","",""
+					end 
+					px=rx+1--The position for the next blit is now set to right after this nozone. This will keep getting set until the last nozone, so the rest of the text comes out right
+				else 
+					if self[ry][rx] then 
+						txt = txt..self[ry][rx].txt --Add this peice of text (ex. "x") to the line txt, same for text/background colors. In a y:x table
+						tColor = tColor..(clrLk[self[ry][rx].tc] or "0")
+						bColor = bColor..(clrLk[self[ry][rx].bg] or "f")
+					else 
+						txt=txt.." "
+						tColor=tColor..clrLk[self.tc]
+						bColor=bColor..clrLk[self.bg]
+					end
+				end  
+			end 	
+			self.t.setCursorPos(px,Y)
+--			game.l("t "..tostring(txt).." co "..tostring(tColor).." bCo "..tostring(bColor))
+			self.t.blit(txt,tColor,bColor)
+
+		end 
+	end 
+	local function deepcopy(orig)--taken from http://lua-users.org/wiki/CopyTable
 	    local orig_type = type(orig)
 	    local copy
 	    if orig_type == 'table' then
@@ -70,7 +114,8 @@ function newBuf(w,h,nativeT)
 	function self.getSize()
 		return self.sizex,self.sizey 
 	end 
-	function self.resize(x,y) 
+	function self.resize(x,y)
+		game.l"resize" 
 		if type(x)~="number" or type(y)~="number"then 
 			return error"[buffer][resize] - Expected number, number"
 		end
@@ -78,11 +123,10 @@ function newBuf(w,h,nativeT)
 		self.bufferblit()
 	end 
 	function self.setCursorPos(x,y) 
-		--game.l("set "..x.." y "..y)
-		if y < 1 then 
-			game.l"settingFarDown"
-			y = -1
+		if y < 1 or y > self.sizey then 
+			y = -666
 		end 
+		--game.l("set "..x.." y "..y)
 		if type(x)~="number" or type(y)~="number"then 
 			return error"[buffer][setCursorPos] - Expected number, number"
 		end 
@@ -132,9 +176,9 @@ function newBuf(w,h,nativeT)
 		self[#self+1]=nil
 		if self.isActive then 
 			--clear the actual term:
-			for i=1,self.sizey+1 do
+		--[[	for i=1,self.sizey+1 do
 				clearLine(i)
-			end 
+			end]] 
 			self.bufferblit(self.pX-1,self.pY-1)
 			self.setCursorPos(1,self.sizey)
 		end 
@@ -143,6 +187,7 @@ function newBuf(w,h,nativeT)
 		return self 
 	end 
 	function self.makeActive(pX,pY)
+		game.l"mkAct"
 		self.isActive,self.pX,self.pY = true,pX or (self.pX or 1),pY or (self.pY or 1)
 		self.bufferblit(self.pX-1,self.pY-1)
 		self.t.setCursorPos(self.x+self.pX-1,self.y+self.pY-1)
@@ -253,6 +298,7 @@ function newBuf(w,h,nativeT)
 	local function cAt(txt,num)
 		return string.sub(txt,num,num)
 	end 
+	
 	function self.write(txt)
 		--game.l("x "..tostring(self.x).." y "..tostring(self.y).." write : "..txt)
 		--game.l"a"----------------------------------
@@ -265,22 +311,25 @@ function newBuf(w,h,nativeT)
 		-- We split these up into 2 loops, as it is more effecient to check once than many times during the loop
 		local x
 		
-		if self.isActive then 
+		if self.isActive and (not shoddyWrite)  then 
 			--game.l"activeWrite"--------------------------
 			self.t.setCursorPos((self.x+self.pX)-1,(self.y+self.pY)-1)
 			--game.l(   "at "..tostring((self.x+self.pX)-1) .. " y "..tostring((self.y+self.pY)-1)   )
 			self.t.setBackgroundColor(self.bg)
 			self.t.setTextColor(self.tc)
+			x = self.x-1
 			for i=1,#txt do --Note: Doing this forwards & not checking if the cursor is at the edge does have a slight impact on compatibility if term.write is called through something other than write. 
-				x=i+self.x-1
-				--game.l("r - i "..i.." x "..x.." c "..cAt(txt,i).." ; y "..self.y)
+				x=x+1
+--				game.l("r - i "..i.." x "..x.." c "..cAt(txt,i).." ; y "..self.y)
 				self[self.y][x] = {}
 				self[self.y][x].txt = cAt(txt,i)
 				self[self.y][x].bg = self.bg
 				self[self.y][x].tc = self.tc
-				if self.nr[self.y][x] then
-					self.t.setCursorPos(((self.x-self.pX)+1)+i,(self.y-self.pY)+1)
+				if (self.nr[self.y] or {})[x] then
+					--self.x=self.x+1
+					game.l"blockd"
 				else 
+					self.t.setCursorPos(((x+self.pX)-1),(self.y+self.pY)-1)
 					self.t.write(cAt(txt,i))
 					--sleep(.1)
 				end 
@@ -290,7 +339,7 @@ function newBuf(w,h,nativeT)
 			--game.l(self.x)
 		else 
 			-- C&P'd from above
-			for i=1,#txt do --Note: Doing this forwards & not checking if the cursor is at the edge does have a slight impact on compatibility if term.write is called through something other than write. 
+			for i=1,#txt do 
 				x=i+self.x-1
 				self[self.y][x] = {}
 				self[self.y][x].txt = cAt(txt,i)
@@ -299,6 +348,9 @@ function newBuf(w,h,nativeT)
 			end 
 			--Now, set the X cursor pos to the correct place
 			self.x = self.x+#txt 
+			if self.isActive and shoddyWrite then --Refresh the line if this buffer is active
+				refreshY(self.y,self.y+(self.pY-1),(self.pX-1),(self.pY-1))
+			end 
 		end 
 	end 
 	function self.blit(txt,tcolor,bcolor)
@@ -308,7 +360,7 @@ function newBuf(w,h,nativeT)
 
 	end --Compatibility for future CC updates
 	function self.bufferblit(x,y)  -- NOTE: Code normal buffer system firs
-		--game.l"blit"
+		game.l"bblit"
 		--clear the screen
 		for i=1,table.maxn(self) do 
 			----------game.l("writy "..i+self.pY)-----------------------
@@ -350,7 +402,7 @@ function newBuf(w,h,nativeT)
 				end 
 			end 
 		else 
-			for i=1,table.maxn(self) do --redo, and go over the screen parts rendering to rather than entire buffer.
+			--[[for i=1,table.maxn(self) do --redo, and go over the screen parts rendering to rather than entire buffer.
 				if self[i] then
 					--local yta = ""--------------------
 					for o=1,table.maxn(self[i]) do 
@@ -366,7 +418,47 @@ function newBuf(w,h,nativeT)
 					end 
 					--game.l(yta)-----------------------
 				end 
-			end 
+			end ]]
+			--Construct string for text, text colors, and background colors
+			local tx,ty = term.getSize()
+			for Y=1+y,ty+y do
+				local ry = Y-y
+				--[[if self[ry] then 
+					local txt,tColor,bColor = "","",""
+					local px =1 
+					for X=1+x,tx+x do
+						local rx = X-x
+						if (self.nr[ry] or {})[rx] then
+							if txt~="" then 
+								game.l"entr"
+								self.t.setCursorPos(px,y)
+								self.t.blit(txt,tColor,bColor)
+								--sleep(1)
+								txt,tColor,bColor = "","",""
+							end 
+							px=rx+1
+						else 
+							if self[ry][rx] then 
+								txt = txt..self[ry][rx].txt --Add this peice of text (ex. "x") to the line txt, same for text/background colors. In a y:x table
+								tColor = tColor..(clrLk[self[ry][rx].tc] or "0")
+								bColor = bColor..(clrLk[self[ry][rx].bg] or "f")
+							else 
+								txt=txt.." "
+								tColor=tColor..clrLk[self.tc]
+								bColor=bColor..clrLk[self.bg]
+							end
+						end  
+					end 	
+					self.t.setCursorPos(px,Y)
+					--game.l("t "..tostring(txt).." co "..tostring(tColor).." bCo "..tostring(bColor))
+					self.t.blit(txt,tColor,bColor)
+
+				end ]]
+			refreshY(ry,Y,x,y)
+				
+			end
+						
+								 	
 		end 
 	end
 	function self.clear()

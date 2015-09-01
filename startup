@@ -1,4 +1,4 @@
-local oldPull = os.pullEvent
+local oldPull,oldOpen = os.pullEvent,fs.open
 os.pullEvent = os.pullEventRaw
 local devmode,args = false
 print"VV Errors / Potential issues VV"
@@ -76,11 +76,12 @@ if multishell then
         local _,y=term.getCursorPos()
         term.setCursorPos(1,y+1)
       end
+      fs.open = oldOpen
       cPrint"A FATAL ERROR OCCURED"
       print()
       term.setBackgroundColor(colors.blue)
       term.setTextColor(colors.white)
-      cPrint("OS Version ".."0.6".." on ".._VERSION)
+      cPrint("BlueOS Version ".."0.7".." on ".._VERSION)
       print()print()
       print"One or more issues have caused the shell to crash."
       cPrint"Your current session cannot be resumed"

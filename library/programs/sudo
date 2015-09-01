@@ -23,6 +23,7 @@ elseif args[1]=="unsu" then
   os.unloadAPI"io"
   os.loadAPI"rom/apis/io"
   osStuff.isSudo = false
+  --osStuff.changeMenuColor(osStuff.backColor,osStuff.textColor)
   return 
 else 
   local before = args[1]
@@ -43,7 +44,9 @@ elseif f == "w" then
 	return 
 end 
 local program 
-if not su then 
+if su then 
+    --osStuff.changeMenuColor(osStuff.backColor,osStuff.sudoColor)
+else
   program = f.readAll()
   --reload IO
   program=" os.unloadAPI'io' os.loadAPI'rom/apis/io' "..program
