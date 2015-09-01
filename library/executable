@@ -1371,7 +1371,7 @@ local function guiPswd()
 		end 
 		local pass
 
-		if true then---false then--b[1] then
+		if b[1] then
 			local c
 			local z = function(a) if not a then term.setBackgroundColor(osStuff.settings.loginColor) term.clear() env.osStuff.popup(nil,7,25,nil,osStuff.g('usrNoExist'),osStuff.g('accountNoExist'),false) end return a end
 			repeat --osStuff.textPopup(x,y,width,buttons,text,topText,dontuseXButton)
