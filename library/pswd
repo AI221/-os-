@@ -106,5 +106,6 @@ if not ok then
 	pcall(function() print"pswd has crashed. Please reboot." print(ok,accType) end)
 	while true do coroutine.yield() end 
 end
-game.l("Logging in as type "..accType)
+--((game or {}).l or function()end ) ("Logging in as type "..tostring(accType) )
+--print("Made it")
 return accType,pass

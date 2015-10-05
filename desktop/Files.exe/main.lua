@@ -13,7 +13,7 @@ p[1].menuY = 1
 local desktopMode,forwarded,deskBack = false,false,colors.white
 
 
-local bg = game.loadMapOld("library/defDesk", 0, 0,colors.white,colors.black,"?",51,18)
+local bg = game.loadMapOld("library/defDesk", 0, 0,false,colors.white,colors.black,"?",51,18)
 local function refrshDeskBack(pnum)
 	term.setBackgroundColor(deskBack)
 	local x,y=term.getSize()
@@ -26,7 +26,7 @@ local function refrshDeskBack(pnum)
 		term.write(str)
 	end --sleep(2)
 	if desktopMode then 
-		bg.render.blit(1,1,1,1)
+		bg:render(1,1,1,1)
 	end 
 end 
 local args = {...}
@@ -70,10 +70,10 @@ end
 term.clear()
 term.setCursorPos(1,1)
 local icns = {}
-local folderIcn = game.loadMapOld("library/icon/folder", 0, 0,colors.white,colors.black,"?",4,3)
-local wtf = game.loadMapOld("library/icon/unknown", 0, 0,colors.white,colors.black,"?",4,3)
+local folderIcn = game.loadMapOld("library/icon/folder", 0, 0,true)
+local wtf = game.loadMapOld("library/icon/unknown", 0, 0,true)
 for i,o in pairs(osStuff.settings.fileTypeDefIcons) do 
-	icns[i] = game.loadMapOld(o, 0, 0,colors.white,colors.black,"?",4,3)
+	icns[i] = game.loadMapOld(o, 0, 0,true)
 end 
 --make buttons
 p[1].guiButs = game.addButton(" < ",term.getSize()-12,1,osStuff.settings.desktop.titleMenuButBColor,osStuff.settings.desktop.titleMenuButTColor)
@@ -143,13 +143,13 @@ local function renderIcons(pnum,xPos,maxXPos)
 			if (p[pnum].mArr[stuff[i]] or {}).icn then --fs.exists( fs.combine( fs.combine(p[pnum].hist[p[pnum].histSpot],stuff[i]) ,"iconOld") ) then 
 				term.setBackgroundColor(colors.black)
 				term.setTextColor(colors.white)
-				p[pnum].mArr[stuff[i]].icn.render.blit(1,1+rendery,p[pnum].arr[stuff[i]].x,p[pnum].arr[stuff[i]].y+p[pnum].scroll+rendery,renderx)
+				p[pnum].mArr[stuff[i]].icn:render(1,1+rendery,p[pnum].arr[stuff[i]].x,p[pnum].arr[stuff[i]].y+p[pnum].scroll+rendery,renderx)
 			elseif icns[string.lower(osStuff.getExt(stuff[i]) )] then 
-				 ( (icns[string.lower( osStuff.getExt(stuff[i] ) )].render or {}).blit or function()end)(1,1+rendery,p[pnum].arr[stuff[i]].x+xPos-1    ,p[pnum].arr[stuff[i]].y+p[pnum].scroll+rendery,renderx)
+				  (icns[string.lower( osStuff.getExt(stuff[i] ) )].render or function()end)(icns[string.lower( osStuff.getExt(stuff[i] ) )],1,1+rendery,p[pnum].arr[stuff[i]].x+xPos-1    ,p[pnum].arr[stuff[i]].y+p[pnum].scroll+rendery,renderx)
 			elseif fs.isDir( fs.combine(p[pnum].hist[p[pnum].histSpot],stuff[i]) ) then --this is last because some extensions are folders
-				folderIcn.render.blit(1,1+rendery,p[pnum].arr[stuff[i]].x+p[pnum].xPos-1    ,p[pnum].arr[stuff[i]].y+p[pnum].scroll+rendery,renderx)
+				folderIcn:render(1,1+rendery,p[pnum].arr[stuff[i]].x+p[pnum].xPos-1    ,p[pnum].arr[stuff[i]].y+p[pnum].scroll+rendery,renderx)
 			else 
-				wtf.render.blit(1,rendery+1,p[pnum].arr[stuff[i]].x+p[pnum].xPos-1   ,p[pnum].arr[stuff[i]].y+p[pnum].scroll+rendery,renderx)
+				wtf:render(1,rendery+1,p[pnum].arr[stuff[i]].x+p[pnum].xPos-1   ,p[pnum].arr[stuff[i]].y+p[pnum].scroll+rendery,renderx)
 			end 
 			local y=p[pnum].arr[stuff[i]].y+3+p[pnum].scroll
 			------game.l("Y WAS "..y.." ON "..stuff[i])
@@ -343,12 +343,11 @@ local function loadArrange(pnum,forceSort)
 		elseif string.sub(i,1,1)=="." then
 			----game.l("caughtDot")
 			remtab[#remtab+1]=i
-		end 
+		end  
 		if fs.exists( fs.combine( fs.combine(p[pnum].hist[p[pnum].histSpot],i) ,"iconOld") ) then 
 			p[pnum].mArr[i]=p[pnum].mArr[i]or{}
-			p[pnum].mArr[i].icn  = game.loadMapOld(fs.combine(fs.combine(p[pnum].hist[p[pnum].histSpot],i),"iconOld"), 0, 0,colors.white,colors.black,"?",4,3)
-		end
-		if fs.exists( fs.combine( fs.combine(p[pnum].hist[p[pnum].histSpot],i) ,"config.lua")  ) then 
+			p[pnum].mArr[i].icn = game.loadMapOld(fs.combine(fs.combine(p[pnum].hist[p[pnum].histSpot],i),"iconOld"), 0, 0,true)
+		elseif fs.exists( fs.combine( fs.combine(p[pnum].hist[p[pnum].histSpot],i) ,"config.lua")  ) then 
 			p[pnum].mArr[i]=p[pnum].mArr[i]or{}
 			local conf,unSerCont = fs.open(fs.combine( fs.combine(p[pnum].hist[p[pnum].histSpot],i) ,"config.lua") ,"r")
 			--game.l"s"
@@ -357,18 +356,16 @@ local function loadArrange(pnum,forceSort)
 				unSerCont = conf.readAll()
 				conf.close() 
 				if unSerCont then 
-					----game.l("suc "..i) 
 					p[pnum].mArr[i].cfg=textutils.unserialize(unSerCont)
-					----game.l(tostring(p[pnum].mArr[i].cfg))
 				end
-			end 
+			end  
 		end 
 	end  
 	for i=1,#remtab do 
 		p[pnum].arr[remtab[i] ] = nil 
 		p[pnum].mArr[remtab[i] ] = nil 
 	end 
-end 
+end
 local function dragIntoOther(evts,theP,op,noScrolly)
 	if (evts[3] > p[theP].maxXPos and theP == 1) or (evts[3] < p[theP].xPos and theP==2) then 
 		--can we move it over?

@@ -1,8 +1,11 @@
-clrLk = {}
+local clrLk = {}
 for n=1,16 do
 	clrLk[2^(n-1)] = string.sub( "0123456789abcdef",n,n ) 
 end 
-
+local invLk = {}
+for i=1,16 do 
+	invLk[string.sub( "0123456789abcdef",i,i )] = 2^(i-1)
+end
 --CONFIG:
 local lazy = false
 --[[?:
@@ -63,7 +66,7 @@ function newBuf(w,h,nativeT)
 	end 
 	local function refreshY(ry,Y,x,y)
 		local tx,ty = term.getSize()
-		if self[ry] then 
+		if self[ry] then --px is the x position for next write to, Y is the part of the screen on the real terminal t write to, X is the part of the real screen to write to, rx & ry are the parts of the buffer, 
 			local txt,tColor,bColor = "","",""
 			local px =1 
 			for X=1+x,tx+x do
@@ -173,7 +176,7 @@ function newBuf(w,h,nativeT)
 		end 
 		self[0] = nil 
 		self[#self] = nil
-		self[#self+1]=nil
+		self[#self+1]={}
 		if self.isActive then 
 			--clear the actual term:
 		--[[	for i=1,self.sizey+1 do
@@ -301,8 +304,6 @@ function newBuf(w,h,nativeT)
 	
 	function self.write(txt)
 		--game.l("x "..tostring(self.x).." y "..tostring(self.y).." write : "..txt)
-		--game.l"a"----------------------------------
-
 		if type(txt)~="string" then 
 			txt = tostring(txt)
 		end 
@@ -313,7 +314,6 @@ function newBuf(w,h,nativeT)
 		
 		if self.isActive and (not shoddyWrite)  then 
 			--game.l"activeWrite"--------------------------
-			self.t.setCursorPos((self.x+self.pX)-1,(self.y+self.pY)-1)
 			--game.l(   "at "..tostring((self.x+self.pX)-1) .. " y "..tostring((self.y+self.pY)-1)   )
 			self.t.setBackgroundColor(self.bg)
 			self.t.setTextColor(self.tc)
@@ -326,12 +326,10 @@ function newBuf(w,h,nativeT)
 				self[self.y][x].bg = self.bg
 				self[self.y][x].tc = self.tc
 				if (self.nr[self.y] or {})[x] then
-					--self.x=self.x+1
 					game.l"blockd"
 				else 
 					self.t.setCursorPos(((x+self.pX)-1),(self.y+self.pY)-1)
 					self.t.write(cAt(txt,i))
-					--sleep(.1)
 				end 
 			end 
 			--Now, set the X cursor pos to the correct place
@@ -353,19 +351,40 @@ function newBuf(w,h,nativeT)
 			end 
 		end 
 	end 
-	function self.blit(txt,tcolor,bcolor)
-		game.l("blit "..txt)
-		return self.t.blit(txt,tcolor,bcolor)
-
-
-	end --Compatibility for future CC updates
+	function self.blit(txt,txtCol,backCol)
+		--game.l("blit "..txt)
+		local cx = self.x --The position to do next blit to
+		local btxt,btxtCol,bbackCol = "","",""
+		for i=1,#txt do 
+			self[self.y] = self[self.y] or {}
+			self[self.y][self.x+i-1] = {}
+			self[self.y][self.x+i-1].bg = invLk[backCol:sub(i,i)]
+			self[self.y][self.x+i-1].tc = invLk[txtCol:sub(i,i)]
+			self[self.y][self.x+i-1].txt= txt:sub(i,i)
+			--game.l(textutils.serialize(self[self.y][self.x+i]))
+			if (self.nr[self.y] or {})[self.x+i-1] then 
+				cx = self.x+i
+				if btxt~="" then 
+					self.t.setCursorPos(cx+self.pY-1,self.y+(self.pY-1))
+					self.t.blit(btxt,btxtCol,bbackCol)
+					btxt,btxtCol,bbackCol = "","",""
+				end 
+			else 
+				btxt=btxt..txt:sub(i,i)
+				btxtCol = btxtCol..txtCol:sub(i,i)
+				bbackCol = bbackCol..backCol:sub(i,i)
+			end 
+		end
+		self.t.setCursorPos(cx+self.pY-2,self.y+(self.pY-1))
+		self.t.blit(btxt,btxtCol,bbackCol)
+	end 
 	function self.bufferblit(x,y)  -- NOTE: Code normal buffer system firs
 		game.l"bblit"
-		--clear the screen
-		for i=1,table.maxn(self) do 
+		--[[clear the screen
+		--for i=1,table.maxn(self) do 
 			----------game.l("writy "..i+self.pY)-----------------------
-			self.t.clearLine(i+self.pY)
-		end
+			self.t.clearLine(i+self.pY-1)
+		end]]
 		x,y=x or self.lastX, y or self.lastY
 		self.lastX,self.lastY = x,y 
 		--x,y=x-1,y-1

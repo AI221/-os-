@@ -2358,7 +2358,7 @@ env.osStuff.settings = osStuff.settings
 --Overwiting printerror to use our colorscheme 
 function printError(txt)
 	--log to console
-	env.game.e("printError text: "..txt)
+	((env.game or {}).e or function()end)("printError text: "..txt)
 	env.term.setTextColor(osStuff.errorColor)
 	print(txt)
 	env.term.setTextColor(osStuff.textColor)

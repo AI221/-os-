@@ -28,13 +28,8 @@ end
 term.clear()
 --capture shellAPI
 osStuff = {}
-local env = _G
-env.shell = shell
-env.osStuff = osStuff
-env.os.pullEvent = oldPull
-print(shellAPI)
-print(env.shell)
-print(env.os.pullEvent == oldPull)
+
+
 if multishell then 
   sleep(0)
   --tlco
@@ -49,10 +44,15 @@ if multishell then
     --kill shell's only reference to multishell
    -- env.shell.openTab = nil
     --env.shell.switchTab =nil
-    local pg,err = loadfile("/library/executable")
+    local env = _G
+    env.shell = shell
+    env.osStuff = osStuff
+    env.os.pullEvent = oldPull
+    local pg,err = loadfile("/library/executable",_G)
     local ok 
     if type(pg) == "function" then
-      setfenv(pg,env)--setmetatable({},{__index=_G}))
+      --setfenv(pg,env)--setmetatable({},{__inidex=_G}))
+      os.pullEvent=oldPull
       ok,err=pcall(pg,args)
     end
     if term.isColor and not (turtle or pocket) then 
@@ -125,14 +125,16 @@ if multishell then
         local env = setmetatable({}, {__index=_G})
         env["shell"] = shell
         if type(shellR) == "function" then
-          setfenv(shellR, env)
+         -- setfenv(shellR, env)
           local shl, shler = pcall(shellR)
+          print(tostring(shl))
+          print(tostring(shler))
           game.l"run"
         elseif realerr then 
           print(realerr)
         end
-        print(shl)
-        print(shler)
+        --print(shl)
+        --print(shler)
         print"CraftOS broke... You are not very lucky."
         print"Press R to restart, C to relaunch."
       end  
