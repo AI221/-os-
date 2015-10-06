@@ -1,0 +1,2500 @@
+--[[
+An OS, by Jackson McNeill
+See /license for licensing information
+
+
+{========================================================}
+{ Index: - Control F for the thing in ()                 }
+{--------------------------------------------------------}
+{ String manipulation stuff (searchStringManip)          }
+{ Copypasta stuff (searchCopypastaStuff)			        	 }
+{ Coroutine Management functions (searchCoMan)	     		 }
+{ Shell stuff (searchShell)						              		 }
+{ Metadata (searchMeta)								                	 }
+{ Refuge from metadata (searchNoMeta)			          		 }
+{ Environment stuff (searchEnv)							 						 }
+{--------------------------------------------------------}
+{ Also see library/api for a few other things            }
+{========================================================}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if metadata is having issue,ln 841 may be of interest, recent change there that I havn't tested well
+
+]]
+--[[
+POOR FIXES: 
+
+These are the functions where code should be redone, and the line number *relative to the start of the function*
+
+
+
+
+
+]]
+
+-------------------------
+----[[Startup Stuff]]----
+-------------------------
+shell.setAlias("lock","/library/pswd")
+shell.setAlias("oldEdit","/rom/programs/edit")
+shell.setAlias("list","/library/programs/dir")
+shell.setAlias("ls","/library/programs/dir")
+local prs = fs.list"/library/programs/"
+for i=1,#prs do 
+	shell.setAlias(prs[i],"/library/programs/"..prs[i])
+end 
+--force shell.programs to include our aliases
+local a = shell.programs
+function shell.programs(...)
+	local b = a(...)
+	b[#b+1] = "lock"
+	b[#b+1] = "oldEdit"
+	b[#b+1] = "console"
+	for i=1,#prs do 
+	b[#b+1] = prs[i]
+	end 
+	return b
+end
+
+local ospe,env,cur=os.pullEvent,{},term.current()
+local accType,accPass
+
+os.pullEvent = coroutine.yield
+--Settings. Customize in "library/settings", just ommit "osStuff.settings." in the serialized table
+osStuff.settings = {}
+osStuff.settings.loginColor = colors.cyan
+osStuff.settings.useAsciiPointer = ">" 
+osStuff.settings.capDirs = false 
+osStuff.settings.useDash = false 
+osStuff.settings.timeDif = 5
+osStuff.settings.timeDifPlus = false 
+osStuff.settings.shortClock = true
+osStuff.settings.doNotGetTime = false
+osStuff.settings.scrollCorrectly = true 
+osStuff.settings.scrollAdd=4
+osStuff.settings.taskSpace=2
+osStuff.settings.sudoPrepointer = "!"
+osStuff.settings.graphicalLogin = true
+osStuff.settings.startxOnStart = true
+osStuff.settings.tabOffsetY = 1 
+--gui colors
+osStuff.settings.gc = {}
+osStuff.settings.gc.menuBColor = colors.lightBlue
+osStuff.settings.gc.mColor = colors.lightBlue
+osStuff.settings.gc.tColor = colors.black
+osStuff.settings.gc.menuTColor = colors.black
+osStuff.settings.gc.borderBColor = colors.lightBlue
+osStuff.settings.gc.borderTColor = colors.gray 
+osStuff.settings.clip={}
+osStuff.settings.clip.modifier = 56--alt by default, set to -1 to disable the clipboard
+osStuff.settings.clip.paster = 47--V
+osStuff.settings.desktop = {}
+osStuff.settings.desktop.maxIcnLength = 7 --desktop settings are also for files
+osStuff.settings.desktop.showExtension = false
+osStuff.settings.desktop.scrollingDesktop = false
+osStuff.settings.desktop.textBackColor = colors.lightBlue
+osStuff.settings.desktop.titleMenuBColor = colors.lightBlue 
+osStuff.settings.desktop.titleMenuButBColor = colors.blue 
+osStuff.settings.desktop.titleMenuButTColor = colors.black
+osStuff.settings.desktop.textInputBColor = colors.white 
+osStuff.settings.desktop.textInputTColor = colors.black 
+osStuff.settings.desktop.splitterColor = colors.gray
+osStuff.settings.desktop.isCommandPrompt = false --broken 
+osStuff.settings.windows={}
+osStuff.settings.windows.windowsTopColor = colors.blue
+osStuff.settings.windows.windowsMiddleColor=colors.lightBlue
+osStuff.settings.windows.windowsTextColor = colors.black
+osStuff.settings.windows.buttonColor = colors.blue
+osStuff.settings.windows.buttonsOnCorrectSide = true 
+osStuff.settings.windows.cbuttonX = colors.red 
+osStuff.settings.windows.cbuttonDash = colors.orange
+osStuff.settings.windows.cbuttonPlus = colors.green 
+osStuff.settings.windows.textboxBgColor = colors.white
+osStuff.settings.windows.tbuttonX = "X"
+osStuff.settings.windows.cbuttonDash = "-"
+osStuff.settings.windows.cbuttonPlus = "+"
+osStuff.settings.windows.configBack = colors.blue
+osStuff.settings.windows.configText = colors.white
+osStuff.settings.extensions = {}
+osStuff.settings.extensions.txt = {}
+osStuff.settings.extensions.txt[1] = "rom/programs/edit"
+osStuff.settings.extensions.none = {}
+osStuff.settings.extensions.none[1]="rom/programs/edit"
+osStuff.settings.appLocations = {}
+osStuff.settings.appLocations[1] = "desktop/Term.exe"
+osStuff.settings.fileTypeDefIcons = {}
+osStuff.settings.fileTypeDefIcons.exe = "library/icon/exedef"
+osStuff.settings.fileTypeDefIcons.txt = "library/icon/txt"
+
+
+
+osStuff.version = 0.7
+osStuff.os = "Blue"
+----
+local args={...}
+if args[1] == "nosplash" then 
+	osStuff.spashes = {""}
+else 
+	osStuff.splashes ={"The cake is a lie!","Possibly the first OS with a GUI not to boot to it.",";;","SPLASH!","Top-level coroutine!","TwoOS!","startx... why not starty?","","This text is hard to re\-\-\- nevermind...","New\nline.","I like to put a little coffee in my tea---I mean---ugggh, screwed up that joke.","I like to put a little chocolate in my mil---FFFFFFFFF","The cow goes \"Man, living here for free is great!\"","for i=1,100 do \n  print\"I will not use code in class\"\nend","Out of jokes. ","Blue!!!!","3good5you","In Soviet Russia, Waldo finds YOU!","In capatalist America, bank robs YOU!","makeYouLaugh() --> \"Lol xD\"","\n\n"," ","EXTERMINATE!","They are fast. Faster than you can belive! DON'T turn your back, DON'T look away, and DON'T blink!\n... good luck.","]os[","Access Denied.","Zoom in 300%! Enhance resolution!","If there are motherboards, are there fatherboards too?","LinusCatTips is a thing...","World, Hello!","jacksonmcneill.ddns.net","Turning-complete? Well, it's almost done!",'IF POE WERE A TECHIE\n\nOnce upon a midnight dreary,\nfingers cramped and vision bleary,\nsystem manuals piled high\nand wasted paper on the floor,\nlonging for the warmth of bed sheets,\nstill I sat there, doing spreadsheets.\n\nHaving reached the bottom line,\nI took a floppy from the drawer.\nTyping with a steady hand,\nI then invoked the "save" command\nand waited for the disk to store,\nonly this and nothing more.\n\nDeep into the monitor peering,\nlong I sat there wond\'ring, fearing\nwhile the disk kept churning,\nturning yet to churn some more.\n"Save!" I said, "You cursed mother!\nSave my data from before!"\n\nOne thing did the phosphors answer\nonly this and nothing more, just,\n "Abort, Retry, Ignore?"\nWith my fingers pale and trembling,\nslowly toward the keyboard bending,\nlonging for a happy ending,\nhoping all would be restored,\nPraying for some guarantee,\ntimidly I pressed a key.\nBut on the screen there still persisted,\nwords appearing as before.\nGhastly grim they blinked and taunted,\nhaunted, as my patience wore, saying,\n"Abort, Retry, Ignore?"\n\nThere I sat, distraught, exhausted;\nby my own machine accosted.\nGetting up, I turned away,\nand paced across the office poor.\nAnd then I saw a dreadful sight:\na lightning bolt cut through the night.\n\nA gasp of horror overtook me,\nshook me to my very core.\nThe lightning zapped my previous data,\nlost and gone forevermore. Not even,\n"Abort, Retry, Ignore?"\n',"They told me I can't; so therefore I will.","A foo walked into a bar, took a look arround, and said, \"Hello, World!\"","I like to think of betas as a huge, beautiful wall with a garden arround it. The wall is brick, but has solid concrete in the middle of it. Oh, and there's also a gaping hole in the center that lets the hackers through.","Clippy:\nIt looks like you're trying to boot up your computer. Would you like some help?","I have a cookie!\nCan I have a byte?\nNo, but you can have a bit!","Help! I'm trapped in the splash factory!","That's not how this works! That's not how any of this works!","Have you gotten the 'if poe where a techie' splash that was an article I c&p'd from the internet? You're better off rebooting if you do.","I'm selling an Early Access table. It only has 3 legs, but I promise I'll add the fourth!","Do you have the system32 virus? You really need to delete that!","This splash describes itself.","Wtf is up with loadGame() ???","If your computer starts running slow, just download some more RAM and CPUs.","Nvidia is 3.5x better!","AMD has the hottest chips!","10 Windows. We finally everthing fix.","Run 'aprilfools' for a prank!",_VERSION.."!","I know H.T.M.L. (How To Meet Ladies)","Warning: This OS may enslave humanity. In the event you suspect the OS is trying to enslave humanity, please tell it a paradox.","Create Clickbait With This One Weird Trick",tostring(fs.getFreeSpace("/")).." BYTES FREE","If you can't read, please type 'help learning to read'.","If you are unable to connect to the internet, please visit http://www.fixmyinternet.com to get help.","Do as I say, not as I do.","Splash!\nPlease enter username:\ntroll\n","Is still a better love story than Twilight","Great question! Moving on.","All glory to the hypnotoad","We should all get brainslugs.","2 scientists walked into a bar. One said 'I'll have some H2O', the other one said 'I'll have some H2O too'. That guy died.","The die came up "..tostring( math.random(1,6) ),"Linux FTW","Arch Linux is the keystone to computing","If you compared 2 Macbooks together, it'd be an apples to apples comparason","Be careful with sudo su"}
+end
+if term.usingNoColor then 
+	print"Note - You do not need to use nocolor to run this OS. It natively supports basic computers."
+	sleep(5)
+elseif term.isColor() then 
+	osStuff.backColor = colors.black
+	osStuff.textColor=colors.lime
+	osStuff.promptColor=colors.yellow
+	osStuff.commandColor=colors.blue
+	osStuff.dirColor = colors.green
+	osStuff.clearBorderColor = colors.lightGray
+	osStuff.errorColor = colors.red
+	osStuff.settings.sudoColor = colors.red
+	osStuff.settings.autoCompBGColor = colors.lime
+	osStuff.settings.autoCompTColor = colors.black
+
+else
+	osStuff.backColor = colors.white
+	osStuff.textColor = colors.black 
+	osStuff.promptColor = colors.black 
+	osStuff.commandColor = colors.black 
+	osStuff.dirColor = colors.black
+	osStuff.clearBorderColor = colors.black
+	osStuff.errorColor = colors.black
+end
+
+------------------------------------
+----[[Stuff needed many places]]----
+------------------------------------
+
+local function tokenise( ... ) -- Taken from CC's shell/bios
+	local sLine = table.concat( { ... }, " " )
+	local tWords = {}
+	local bQuoted = false
+	for match in string.gmatch( sLine .. "\"", "(.-)\"" ) do
+		if bQuoted then
+			table.insert( tWords, match )
+		else
+			for m in string.gmatch( match, "[^ \t]+" ) do
+				table.insert( tWords, m )
+			end
+		end
+		bQuoted = not bQuoted
+	end
+	return tWords
+end
+
+
+
+
+
+
+local recurseLimit=200 --This should prevent errors in most cases, unless there are 56 other functions running this
+local function runStartups(dir,recurse,oriDir)
+	local list=fs.list(dir)
+		for i=1,#list do 
+		local f=fs.combine(dir,list[i])
+		if fs.isDir(f) then 
+			recurse=recurse+1
+			if recurse >=recurseLimit then 
+				printError("You have too many folders inside of folders in "..oriDir.." The limit is 200.")
+				sleep(5)
+				print"Please fix this."
+				return 
+			end 
+			game.l("Executing startup program "..f)
+			runStartups(f,recurse+1,oriDir)
+		else 
+			env.shell.run(f)
+		end 
+	end
+end 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----------------------------
+----[[1.7 update stuff]]----
+----------------------------
+local oldGFenv = getfenv
+local oldSFenv = setfenv
+function getFenv(targ)
+	game.e"Depreciated function getFenv called" 
+	if targ ~= 0 then 
+		return oldGFenv(targ)
+	end 
+end 
+function setFenv(targ,env)
+	game.e"Depreciated function setFenv called" 
+	return oldSFenv(targ,env)
+end 
+--Ripped from bios.lua
+
+function osStuff.readRecolored( _sReplaceChar, _tHistory, _fnComplete,tc,bg,sLine,w,nHistoryPos)--w is the limit for the size
+	env.term.setCursorBlink( true )
+
+	local sLine = sLine or ""
+	--local nHistoryPos
+	local nPos = #sLine
+	if _sReplaceChar then
+		_sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
+	end
+
+	local tCompletions
+	local nCompletion
+	local function recomplete()
+		if _fnComplete and nPos == string.len(sLine) then
+			tCompletions = _fnComplete( sLine )
+			if tCompletions and #tCompletions > 0 then
+				nCompletion = 1
+			else
+				nCompletion = nil
+			end
+		else
+			tCompletions = nil
+			nCompletion = nil
+		end
+	end
+
+	local function uncomplete()
+		tCompletions = nil
+		nCompletion = nil
+	end
+
+	w = w or env.term.getSize()
+	local sx = env.term.getCursorPos()
+
+	local function redraw( _bClear )
+		local nScroll = 0
+		if sx + nPos >= w then
+			nScroll = (sx + nPos) - w
+		end
+
+		local cx,cy = env.term.getCursorPos()
+		env.term.setCursorPos( sx, cy )
+		local sReplace = (_bClear and " ") or _sReplaceChar
+		if sReplace then
+			env.term.write( string.rep( sReplace, math.max( string.len(sLine) - nScroll, 0 ) ) )
+		else
+			env.term.write( string.sub( sLine, nScroll + 1 ) )
+		end
+
+		if nCompletion then
+			local sCompletion = tCompletions[ nCompletion ]
+			local oldText, oldBg
+			if not _bClear then
+				oldText = env.term.getTextColor()
+				oldBg = env.term.getBackgroundColor()
+				env.term.setTextColor( tc )
+				env.term.setBackgroundColor( bg )
+			end
+			if sReplace then
+				env.term.write( string.rep( sReplace, string.len( sCompletion ) ) )
+			else
+				env.term.write( sCompletion )
+			end
+			if not _bClear then
+				env.term.setTextColor( oldText )
+				env.term.setBackgroundColor( oldBg )
+			end
+		end
+
+		env.term.setCursorPos( sx + nPos - nScroll, cy )
+		osStuff.renderMe()
+	end
+	
+	local function clear()
+		redraw( true )
+	end
+
+	recomplete()
+	redraw()
+
+	local function acceptCompletion()
+		if nCompletion then
+			-- Clear
+			clear()
+
+			-- Find the common prefix of all the other suggestions which start with the same letter as the current one
+			local sCompletion = tCompletions[ nCompletion ]
+			local sFirstLetter = string.sub( sCompletion, 1, 1 )
+			local sCommonPrefix = sCompletion
+			for n=1,#tCompletions do
+				local sResult = tCompletions[n]
+				if n ~= nCompletion and string.find( sResult, sFirstLetter, 1, true ) == 1 then
+					while #sCommonPrefix > 1 do
+						if string.find( sResult, sCommonPrefix, 1, true ) == 1 then
+							break
+						else
+							sCommonPrefix = string.sub( sCommonPrefix, 1, #sCommonPrefix - 1 )
+						end
+					end
+				end
+			end
+
+			-- Append this string
+			sLine = sLine .. sCommonPrefix
+			nPos = string.len( sLine )
+		end
+
+		recomplete()
+		redraw()
+	end
+	while true do
+		local sEvent, param = os.pullEvent()
+		if sEvent == "char" then
+			-- Typed key
+			clear()
+			sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+			nPos = nPos + 1
+			recomplete()
+			redraw()
+
+		elseif sEvent == "paste" then
+			-- Pasted text
+			clear()
+			sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+			nPos = nPos + string.len( param )
+			recomplete()
+			redraw()
+
+		elseif sEvent == "key" then
+			if param == keys.enter then
+				-- Enter
+				if nCompletion then
+					clear()
+					uncomplete()
+					redraw()
+				end
+				break
+				
+			elseif param == keys.left then
+				-- Left
+				if nPos > 0 then
+					clear()
+					nPos = nPos - 1
+					recomplete()
+					redraw()
+				end
+				
+			elseif param == keys.right then
+				-- Right                
+				if nPos < string.len(sLine) then
+					-- Move right
+					clear()
+					nPos = nPos + 1
+					recomplete()
+					redraw()
+				else
+					-- Accept autocomplete
+					acceptCompletion()
+				end
+
+			elseif param == keys.up or param == keys.down then
+				-- Up or down
+				if nCompletion then
+					-- Cycle completions
+					clear()
+					if param == keys.up then
+						nCompletion = nCompletion - 1
+						if nCompletion < 1 then
+							nCompletion = #tCompletions
+						end
+					elseif param == keys.down then
+						nCompletion = nCompletion + 1
+						if nCompletion > #tCompletions then
+							nCompletion = 1
+						end
+					end
+					redraw()
+
+				elseif _tHistory then
+					-- Cycle history
+					clear()
+					if param == keys.up then
+						-- Up
+						if nHistoryPos == nil then
+							if #_tHistory > 0 then
+								nHistoryPos = #_tHistory
+							end
+						elseif nHistoryPos > 1 then
+							nHistoryPos = nHistoryPos - 1
+						end
+					else
+						-- Down
+						if nHistoryPos == #_tHistory then
+							nHistoryPos = nil
+						elseif nHistoryPos ~= nil then
+							nHistoryPos = nHistoryPos + 1
+						end                        
+					end
+					if nHistoryPos then
+						sLine = _tHistory[nHistoryPos]
+						nPos = string.len( sLine ) 
+					else
+						sLine = ""
+						nPos = 0
+					end
+					uncomplete()
+					redraw()
+
+				end
+
+			elseif param == keys.backspace then
+				-- Backspace
+				if nPos > 0 then
+					clear()
+					sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
+					nPos = nPos - 1
+					recomplete()
+					redraw()
+				end
+
+			elseif param == keys.home then
+				-- Home
+				if nPos > 0 then
+					clear()
+					nPos = 0
+					recomplete()
+					redraw()
+				end
+
+			elseif param == keys.delete then
+				-- Delete
+				if nPos < string.len(sLine) then
+					clear()
+					sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )                
+					recomplete()
+					redraw()
+				end
+
+			elseif param == keys["end"] then
+				-- End
+				if nPos < string.len(sLine ) then
+					clear()
+					nPos = string.len(sLine)
+					recomplete()
+					redraw()
+				end
+
+			elseif param == keys.tab then
+				-- Tab (accept autocomplete)
+				acceptCompletion()
+
+			end
+
+		elseif sEvent == "env.term_resize" then
+			-- env.Terminal resized
+			--w = env.term.getSize()
+			redraw()
+
+		end
+	end
+
+	local cx, cy = env.term.getCursorPos()
+	env.term.setCursorBlink( false )
+	env.term.setCursorPos( w + 1, cy )
+	print()
+	
+	return sLine
+end
+--search keyword: searchStringManip
+-------------------------------------
+----[[String manipulation stuff]]----
+-------------------------------------
+
+function osStuff.centerWrite(text)
+  local _,y=term.getCursorPos()
+  term.setCursorPos((term.getSize()-#text)/2,y)
+  write(text)
+end
+function osStuff.centerPrint(text)
+  osStuff.centerWrite(text)
+  print()
+end
+
+
+--Filesystem stuff
+function osStuff.prgName(path)
+  string.gsub(path,"/","\\")
+  local a
+  while true do 
+    a=string.find(path,"/")
+    if not a then 
+      break
+    end 
+    path = string.sub( path, a+1, #path )
+  end 
+  return path 
+end 
+
+function osStuff.getDir(program)
+  if not string.find(program,"/") then 
+    return ""
+  end 
+  local remove = #fs.getName(program)
+  return string.sub(program,1,(#program-remove)-1)
+end 
+
+function osStuff.getExt(name)
+  return string.sub(name,#name-2,#name)
+end 
+function osStuff.doDir()
+	term.setBackgroundColor(osStuff.backColor)
+	if shell.dir()=="" then else--not a dir not a problem
+		term.setTextColor(osStuff.dirColor)
+		local dir = shell.dir()
+		if osStuff.settings.capDirs then 
+			dir = string.upper(dir)
+		end 
+		if osStuff.settings.useDash then 
+			dir = string.gsub(dir,"/"," - ")
+		end 
+		write(dir.." ")
+		if #dir>=term.getSize()-1 then 
+			print()
+		end
+		if osStuff.settings.useAsciiPointer then 
+			local x,y = term.getCursorPos()
+			term.setCursorPos(x-1,y)
+		end
+	end
+	if osStuff.settings.useAsciiPointer then 
+		if env.osStuff.isSudo then 
+			term.setTextColor(osStuff.settings.sudoColor)
+			write(osStuff.settings.sudoPrepointer)
+		else 
+			term.setTextColor(osStuff.commandColor)
+		end 
+		write(string.sub(osStuff.settings.useAsciiPointer,1,1).." ")
+		term.setTextColor(osStuff.textColor)
+	end
+end
+
+function osStuff.specialPrint(text,time)--fancy name printing
+	--[[text = text or ""
+	time = time or 0
+	for i=1,#text do
+	--get the cursor y pos
+	local x,y=term.getCursorPos()
+	if x==1 then
+		x=2
+	end
+	term.setCursorPos(x-1,y)
+	term.setBackgroundColor(osStuff.backColor)
+	term.setTextColor(osStuff.textColor)
+	local writeThis = string.sub(text,i,i)
+	if writeThis=="\n" then--new line
+		term.setBackgroundColor(osStuff.backColor or 1)
+		print" "
+		--term.setCursorPos(1,y+1)
+	else
+		write(writeThis)
+		term.setBackgroundColor(colors.white)
+		write" "
+		sleep(time)
+	end
+	end
+	term.setBackgroundColor(osStuff.backColor or 1)
+	local _,y=term.getCursorPos()
+	term.setCursorPos(term.getCursorPos()-1,y) 
+	print" "]]print(text)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--search keyword: searchCopypastaStuff
+----------------------------
+----[[[Copypasta stuff]]----
+----------------------------
+
+--Clipboard
+local clipboardStuff,highlightedClip  = {},1
+function osStuff.copyToClipboard(a) 
+  if type(a) == "string" then 
+    table.insert(clipboardStuff,1,a)
+    highlightedClip=1
+  end 
+end 
+function osStuff.removeFromClipboard(num)
+  table.remove(clipboardStuff,num)
+end 
+function osStuff.getClipboard()
+  return clipboardStuff,highlightedClip
+end 
+--paste daemon(pasted)
+local altPressed=false
+local function pasted()
+	game.l"paste daemon activated"
+	while true do 
+		local evts= {coroutine.yield()}
+		if evts[1]=="key" then 
+			if evts[2]==osStuff.settings.clip.modifier then --alt by default
+				altPressed = true
+			elseif evts[2]==osStuff.settings.clip.paster then --V by default
+				if altPressed then
+					os.queueEvent("key",14)--a little bit hacky, but works well
+					coroutine.yield("key")
+					os.queueEvent("paste",( clipboardStuff[highlightedClip] or "" ) ) 
+				end 
+			end 
+		elseif evts[1]=="key_up" then 
+			if evts[2]==osStuff.settings.clip.modifier then 
+				altPressed=false
+			end 
+		end 
+	end 
+end 
+------------------------------
+------------------------------
+--[[Time keeping functions]]--
+------------------------------
+------------------------------
+local function getRealTime(dif,forward)
+  if osStuff.settings.doNotGetTime then 
+    return false 
+  end 
+  if forward then 
+    dif = dif.."+hours+from+now"
+  else 
+    dif=dif.."+hours+ago"
+  end 
+  local url = "http://chronic.herokuapp.com/utc/"
+  --^ this is the best thing. ever. returns in plain text, and does not need a developer key. It makes my life so much easier.
+  local utc = http.get(url..dif)
+  if not utc then return false end
+  utc = utc.readAll()
+  if not utc then return false end 
+  local year = utc:sub(1,utc:find("-")-1)
+  local month = utc:sub(utc:find"-"+1,utc:find("-",utc:find"-"+1)-1)
+  month=month:gsub(" ","")
+  local day = utc:sub(utc:find("-",utc:find"-"+1)+1,utc:find(" "))
+  day=day:gsub(" ","")
+  local clocktime = utc:sub(utc:find" "+1,utc:find(" ",utc:find" "+1)-1)
+  local pm
+  if tonumber(clocktime:sub(1,2)) >= 13 and (not osStuff.miliTime) then
+    clocktime= tostring(tonumber(clocktime:sub(1,2))-12)..string.sub(clocktime,3,#clocktime)
+    pm=true
+  end 
+  clocktime=clocktime:gsub(" ","")
+  return year,month,day,clocktime,pm
+end 
+local function addsecond(clocktime)
+  local seconds = clocktime:sub(#clocktime-1,#clocktime)
+  seconds:gsub(":"," ")
+  --print(seconds)
+  seconds =seconds+1
+  if seconds > 59 then 
+    --instead of doing any further time calculations, just ask the server again. So, this means the server is asked every minute for the time.
+    return false
+  end
+  
+  local small
+  if seconds <10 then 
+    seconds = tostring(seconds)
+    small = true 
+    seconds = "0"..seconds 
+  end 
+  --print("c "..clocktime:sub(1,#clocktime-2))
+  return clocktime:sub(1,#clocktime-2)..seconds
+end 
+local year,month,day,clocktime,pm
+local function timekeeping()
+  while true do
+    if not clocktime then --if the server went down, we'll keep trying every second... hopefully we're not the cause of its downtime, or it's not going back up anytime soon, lol.
+      year,month,day,clocktime,pm=getRealTime(osStuff.settings.timeDif,osStuff.settings.timeDifPlus)
+    else
+      local t = addsecond(clocktime)
+      if t then 
+        clocktime=t 
+      else 
+        year,month,day,clocktime,pm=getRealTime(osStuff.settings.timeDif,osStuff.settings.timeDifPlus)
+      end 
+      --print("Year "..year.." on the "..day.." of "..month..", "..clocktime)
+      --os.queueEvent"clocktick"
+    end 
+    sleep(1)
+  end  
+end 
+function osStuff.getTime() return year,month,day,clocktime,pm end 
+
+function osStuff.seperateTime(_d)
+  if type(_d) ~="string" then return "6:66","6:66","6:66" end 
+  local res1,res2,res3 = pcall( function() 
+    return string.sub(_d,1,string.find(_d,",")-1),string.sub(_d,string.find(_d,",")+2,string.find(_d,",",string.find(_d,",")+1)-1),string.sub(_d,string.find(_d,",",string.find(_d,",")+1)+2,#_d) 
+    end  )
+  if type(res1)=="string" then 
+    return res1,res2,res3
+  end 
+end 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--search keyword: searchCoMan
+------------------------------------------
+----[[Coroutine Management functions]]----
+------------------------------------------
+local routines = {}
+local buffers = {}
+local oriBuffers = {}
+local requests = {}
+local active = {}
+local props = {}
+--local args = {}
+local dedList = {}
+local taskOrientation = {}
+local shells = {} --Implement shell functions so they repsond correctly to each routine  
+local tcolors = {}
+local ttcolors = {}
+local appWin = {} --App windows are windows that only show for 1 tab
+local globalWin = {} --Global windows show on all tabs
+local winProp = {} -- Window properties table
+local curRout
+local natTerm = term.current()
+function osStuff.newRoutine(name,funct,buf,bSizex,bSizey,dontrunFirstTime,_args)--implement the double-name-prrevention system
+	--game.l(name)
+	if type(funct) ~= "function" then 
+		return false 
+	end 
+	if routines[name] then 
+		return false,1
+	end 
+	--game.l("y")
+	if name ~="main" then 
+		setfenv(funct,env)--I need a better way of doing this...
+	else 
+		setfenv(funct,getfenv())
+	end 
+	
+	routines[name] = coroutine.create(function() local _,err= pcall(funct,unpack(_args or {}) ) game.e(err) return err end )
+	--args[name] = _args 
+	
+	if (not bSizex) or (not bSizey) then 
+		local bSizex,bSizey = term.getSize()
+		bSizey=bSizey-1 
+	end 
+	local a = term.current()
+	if buf then 
+		buffers[name] = buffer.newBuf(bSizex,bSizey,natTerm)
+		oriBuffers[name] = buffers[name]
+	else 
+		buffers[name] = term.current()
+	end 
+	--first run 
+	if not dontrunFirstTime then 
+		local prev = curRout
+		curRout = name 
+		term.redirect(buffers[name])
+		local _ 
+		_,requests[name]=coroutine.resume(routines[name])
+		term.redirect(a)
+		curRout=prev
+	end 
+	return true 
+end 
+function osStuff.newWindow(rName,name,funct,buf,bSizex,bSizey,noRun,_args,x,y,hasBar,windowTitle)
+	local realname = osStuff.newRoutine(name,funct,buf,bSizex,bSizey,noRun,_args)
+	buffers[name].setActivePos(x,y+1)
+	winProp[name] = {}
+	winProp[name]["x"],winProp[name]["y"],winProp[name]["bSizex"],winProp[name]["bSizey"],winProp[name]["hasBar"],winProp[name]["title"],winProp[name].name = x,y,bSizex,bSizey,hasBar,windowTitle,name
+	if rName then
+		--appWin[rName]=appWin[rName] or {}
+		appWin[rName]= name
+	else 
+		globalWin[name]=true 
+		--globalWin[name].name=name
+	end
+--	winProp[name]=name 
+
+	
+end 
+local function doWindow(tWin,buf)
+	--print(textutils.serialize(tWin))
+	buf.newNozone(tWin.x,tWin.bSizex+1,tWin.y,tWin.bSizey)
+	if (buffers[tWin.name] or {}).bufferBlit then 
+		buffers[tWin.name].bufferBlit(tWin.x,tWin.y+1)
+	end 
+	if tWin.hasBar then
+		term.redirect(natTerm)
+		paintutils.drawLine(tWin.x,tWin.y+osStuff.settings.tabOffsetY,tWin.bSizex+tWin.x,tWin.y+osStuff.settings.tabOffsetY,osStuff.settings.windows.windowsTopColor)
+		term.setCursorPos(((tWin.bSizex-#tWin.title)/2)+tWin.x,tWin.y+osStuff.settings.tabOffsetY)
+		term.setTextColor(osStuff.settings.windows.windowsTextColor)
+		term.write(tWin.title)
+		term.redirect(oriBuffers[curRout])
+		sleep(1)
+		
+ --[[
+		local _,tW = term.getSize()
+		term.setCursorPos((tW-#tWin.title)/2,tWin.y-2)
+		term.setBackgroundColor(colors.red)
+		term.setTextColor(colors.white)
+		term.write(title)
+		--sleep(1)]]
+	end 
+
+end
+function tdeb(a)
+	doWindow(winProp.window,a)
+end
+local function killRoutine(name)
+	routines[name] = nil
+	buffers[name] = nil
+	oriBuffers[name] = nil 
+	requests[name] = nil 
+	active[name] = nil 
+	props[name] = nil 
+	args[name] = nil 
+	for i=1,table.maxn(taskOrientation) do 
+		if taskOrientation[i] ==name then 
+			table.remove(taskOrientation,i) 
+		end 
+	end 
+	if curRout == name then 
+		for i,o in pairs(routines) do --select a random coroutine
+			--curRout = i 
+			break 
+		end 
+	end 
+	os.queueEvent("appDied",name)
+end 
+function osStuff.killRoutine(name)
+	dedList[#dedList+1] = name 
+end 
+function osStuff.getBuffer(name)
+	return buffers[name] 
+end 
+function osStuff.getOriBuffer(name)
+	return oriBuffers[name]
+end 
+function osStuff.getRoutineStatus(name)
+	return coroutine.status(routines[name]) 
+end
+function osStuff.listRoutines()
+	local a = {}
+	for i,o in pairs(routines) do 
+		table.insert(a,i)
+	end 
+	return a 
+end 
+local lastActive
+function osStuff.legacyMakeActive(name)--*not* depreciated 
+	if not name then 
+		return false 
+	end 
+	if lastActive then 
+		active[lastActive] = false
+		if oriBuffers[lastActive] then 
+			if oriBuffers[lastActive].makeInactive then 
+				game.l("deactiv buf"..lastActive)
+				oriBuffers[lastActive].makeInactive() 
+			end 
+		end 
+	end 
+	lastActive =name 
+	active[name] = true 
+	if oriBuffers[name] then
+		if oriBuffers[name].makeActive  then 
+			if props[name].selfRender then 
+				game.l"lActBlit"
+				oriBuffers[name].bufferblit()
+			else 
+				oriBuffers[name].makeActive() 
+			end 
+		end 
+	end 
+	--refresh menu color 
+	osStuff.settings.gc.mColor = tcolors[name] or osStuff.settings.gc.menuBColor
+	osStuff.settings.gc.tColor = ttcolors[name] or osStuff.settings.gc.menuTColor
+	--env.osStuff.settings =osStuff.settings 
+	--game.l("CHANGE COLOR TO "..tostring(osStuff.settings.gc.mColor).."should be "..tostring(tcolors[name]))
+end 
+function osStuff.returnLegacyActive() 
+	return lastActive
+end 
+function osStuff.isActive(name)
+	return active[name]
+end 
+function osStuff.makeActive(name)
+	active[name] = true 
+	if oriBuffers[name] then 
+		if oriBuffers[name].makeActive then 
+			if (props[name] or {}).selfRender then 
+				game.l"actBlit"
+				oriBuffers[name].bufferblit()
+			else 
+				oriBuffers[name].makeActive() 
+			end 
+		end 
+	end 
+end
+function osStuff.changeMenuColor(color,tcolor)
+	--game.l("CHANGE MENU COLOR"..curRout)
+	if active[curRout] then 
+		--print"ActChange"
+		osStuff.settings.gc.mColor = color or osStuff.settings.gc.menuBColor
+		osStuff.settings.gc.tColor = tcolor or osStuff.settings.gc.menuTColor
+		os.queueEvent"refreshMenu"
+	end 
+	tcolors[curRout] = color 
+	ttcolors[curRout] =tcolor
+end 
+--function osStuff.deb()return tcolors,curRout end
+function osStuff.returnMyName() 
+	return curRout 
+end 
+local foucusedEvents = {key =true,paste=true,char=true,mouse_click=true,mouse_drag=true,mouse_scroll=true,menu_press=true,key_up=true,mouse_up=true,terminate=true}--I'm pretty sure this is spelled wrong
+local mouseEvents = {mouse_click=true,mouse_drag=true,mouse_scroll=true,mouse_up=true}
+--[[
+initRoutines brief:
+If the coroutine is an active one or if it isn't active, but its event doesn't require it to be, proceed
+If it is asking for this event, proceed
+If the event is dealing with the mouse, do next
+Check if it should be getting the mouse events, and if so, adjust them accordingly.
+
+Resume the routine, collecting the next event it wants, and giving it the current events.
+Repeat.
+]]
+local natTerm = term.current()
+local function initRoutines()
+	local requests,ok,err = {}
+ -- game.l"Routine service starting NOW"
+	while true do 
+		local evts = {coroutine.yield()}
+		for name,routineCo in pairs(routines) do 
+			if coroutine.status(routines[name]) =="suspended" then
+				if (active[name]) or (not foucusedEvents[evts[1]]) then
+					if (requests[name] ==evts[1]) or (not requests[name]) then 
+						--check if it's a mouse event
+						if mouseEvents[evts[1]] and type(props[name]) == "table" then 
+							evts[3]=evts[3]-(props[name].bufLocx or 1)+1
+							evts[4]=evts[4]-(props[name].bufLocy or 1)+1
+						end  
+						if  ( (not mouseEvents[evts[1]]) or (evts[3] > 0 and evts[4] > 0) ) then  
+							curRout = name
+							term.redirect(buffers[name])
+							ok,requests[name] = coroutine.resume(routines[name],unpack(evts))
+							--game.l("r "..name.." "..tostring(requests[name]).."+"..tostring(test))
+							if not ok then 
+								game.l("Routine "..name.." encountered error "..requests[name])
+							end 
+						end 
+					
+						if mouseEvents[evts[1]] and type(props[name]) == "table" then --a bit of a bad fix, will make better later
+							evts[3]=(evts[3]+(props[name].bufLocx or 1))-1 
+							evts[4]=(evts[4]+(props[name].bufLocy or 1))-1 
+						end 
+					end 
+				end 
+			else --RIP in peace
+				game.l("Routine "..name.."("..tostring(requests[name])..") died. Will be GC'd at the end of this cycle.")
+				dedList[#dedList+1]=name
+			end 
+		end 
+		--GCing
+		for i=1,#dedList do 
+			killRoutine(dedList[i])
+			game.l(tostring(i).." : Garbage collected "..dedList[i])
+			dedList[i]=nil
+		end 
+		--dedList={}
+	end 
+end 
+local termx,termy=term.getSize()
+function osStuff.spawnApp(name,funct,taskBackColor,taskTextColor,taskText,selfRender,args) 
+	name=name.."App"
+	while routines[name] do 
+		name=name.."|"
+	end 
+	if osStuff.newRoutine(name,funct,true,termx,termy-1,true,args) then 
+		buffers[name].setActivePos(1,2)
+		props[name] = {}
+		props[name].bufLocx = 1
+		props[name].bufLocy = 2
+		props[name].taskBackColor = taskBackColor
+		props[name].taskTextColor = taskTextColor
+		props[name].taskText = taskText
+		props[name].type = 1--1 = fullscreen(ish) tabbed 
+		props[name].menu = {}
+		props[name].selfRender = selfRender
+		taskOrientation[#taskOrientation+1] = name
+		local prev,a = curRout,term.current()
+		curRout = name 
+		term.redirect(buffers[name])
+		local _ 
+		_,requests[name]=coroutine.resume(routines[name])
+		term.redirect(a)
+		curRout=prev
+		os.queueEvent"appSpawned"
+		return name
+	else 
+		return false
+	end 
+end 
+function osStuff.updateMenu(menutable)
+	props[curRout].menu = menutable
+	os.queueEvent"menu_update"
+end 
+function osStuff.returnTaskstuffs()
+	return props,taskOrientation
+end 
+function osStuff.renderMe()--redo with variable buffer positions
+	game.l"rM"
+	if active[curRout] and (props[curRout] or {}).selfRender then 
+		if (oriBuffers[curRout] or {}).bufferblit then 
+			term.redirect(natTerm)
+			oriBuffers[curRout].bufferblit(0,1)
+			term.setCursorPos(oriBuffers[curRout].x,oriBuffers[curRout].y+1)
+			term.setTextColor(oriBuffers[curRout].tc)
+			term.setCursorBlink(oriBuffers[curRout].cursorBlink)
+			term.redirect(oriBuffers[curRout])
+		end 
+	end 
+end
+--[[function osStuff.getArgs()
+	return args[curRout]
+end ]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+--lang system:
+local lang={}
+--run the language file 
+local b = fs.open('/library/lang/def',"r")
+local c 
+if b then 
+	c = b.readAll()
+	b.close()
+end
+print(fs.combine("/library/lang/",(c or "")))
+local a = loadfile("/"..fs.combine("/library/lang/",(c or "")),lang)
+if type(a) ~="function" then 
+	print"\nWarning: Language file is missing or has errors. lan.osLookWeird. lan.exampleOfWeird"
+	print("Error: "..tostring(a))
+	sleep(4)
+end
+if a then 
+	local ok,err=pcall(a)
+	if not ok and err then 
+		print("language file error:"..err)
+		sleep(5)
+	end 
+else 
+	print"\nWarning: Language file has errors. lan.osLookWeird. lan.exampleOfWeird"
+	sleep(4)
+end 
+local lan = setmetatable({},{__index=function(self,input) local res,same = osStuff.g(input) if same then return "lan."..res end return res end })
+function osStuff.g(a) -- This method allows for things like 'sudo.usage'
+	local _langenv = {lang=lang}
+	local f=load("return lang."..a,"langReturn", "t",_langenv)
+	local ok,err = pcall(f)
+	if err then 
+		return err
+	end 
+	return a
+end
+function osStuff.p(a)
+	print(osStuff.g(a))
+end 
+function osStuff.switchLanguage(newLang)
+	local a = fs.open('/library/lang/def',"w")
+	a.write(newLang)
+	a.close()
+end 
+
+
+
+function term.native()--don't let them bypass a buffer api
+	return term.current()
+end 
+
+
+
+--Part 2: 
+--¥
+--[[
+ARgS:
+1 - "nosplash" for no splash
+2 - The program to run after bootup
+3 - "nopass" to bypass the password. Note that there is no way you can get the boot function to do this before entering the password. The password lock is completely safe.
+4 - "stop" will cause Newshell to ceise to initialize.
+]]
+
+--search keyword: searchShell
+-----------------------
+----[[Shell stuff]]----
+-----------------------
+
+local oldClear,didClear = term.clear 
+function term.clear() 
+	oldClear()
+	didClear = true 
+end 
+function osStuff.didClear() return didClear end 
+function osStuff.resetClear() didClear = false end 
+local open = fs.open 
+function osStuff.doSplash()
+	local whichSplash = math.random(1,#osStuff.splashes)
+	--print the splash
+	osStuff.specialPrint(osStuff.splashes[whichSplash])
+end 
+local function pswd()
+	--just in case
+	if not fs.exists"library/acc/admin" then 
+	  fs.makeDir"library/acc/admin"
+	end 
+
+
+
+
+
+	local ok,accType,pass=pcall(function()
+			--temp:
+		if not game then game={} function game.l(a) end end 
+
+		local osStuff = osStuff or {}
+		osStuff.prgName = osStuff.prgName or function(path)--ripped from osStuff
+			string.gsub(path,"/","\\")
+			local a
+			while true do 
+				a=string.find(path,"/")
+				if not a then 
+					break
+				end 
+				path = string.sub( path, a+1, #path )
+			end 
+			return path 
+		end 
+		osStuff.g = osStuff.g or function(a) return a end --they'll see reeeaally shortened, bad-grammered, engrish versions of everything
+		osStuff.p = osStuff.p or function(a) print(a) end 
+
+		--get password
+		
+		--find accs
+		local b = fs.list"/library/acc/"
+		for i=1,#b do 
+			if b[i]=="admin" then 
+				table.remove(b,i)
+			end 
+		end 
+		local a = fs.list"/library/acc/admin"
+		for i,o in pairs(a) do
+			table.insert(b,"admin/"..o)
+		end 
+		local pass
+
+		if b[1] then
+			local c
+			local z = function(a) if not a then osStuff.p'usrNoExist' end return a end
+			repeat
+				osStuff.p"entUsr"
+				local usr = read()
+				for i=1,#b do 
+					if osStuff.prgName("/library/acc/"..b[i])==usr then 
+						c=i
+					end 
+				end 
+			until z(c)
+			if c then 
+				local f = open("library/acc/"..b[c],"r")
+				if f then 
+					pass=f.readAll()
+					f.close()
+				else 
+					osStuff.p'usrNoExist'
+					while true do coroutine.yield() end 
+				end
+				for i=1,4 do
+					print("("..osStuff.g"attempt"..tostring(i).."/4) "..osStuff.g"plzentpass")
+					local input = read"*"
+					if input == pass then 
+						--is type admin?
+						if string.sub(b[c],1,5) =='admin' then 
+							return "admin",pass
+						end 
+						return "guest",pass
+					end 
+				end
+				osStuff.p('outAttempt')
+				while true do coroutine.yield() end
+			end
+		else 
+			local input
+			while true do 
+				osStuff.p('noPassFound')
+				input = read()
+				print"Confirm:"
+				if read() == input then 
+					break 
+				end
+			end
+			--write 
+			local f=open("library/acc/admin/root","w")
+			f.writeLine(input)
+			f.close()
+			--set permissions
+			print('Your user name is "root" and password is "'..input..'". "root" is an administrative account, and its password can be found @ /library/acc/admin/ . You will need to login to an administrative account and retype your password to view this.')
+			return "admin",input
+		end
+	end)
+	if not ok then
+		--something went wrong(they probably terminated it. They can do that all they want, they won't get into the computer.)
+		pcall(function() print"pswd has crashed. Please reboot." print(ok,accType) end)
+		while true do coroutine.yield() end 
+	end
+	game.l("Logging in as type "..accType)
+	return accType,pass
+end 
+local function guiPswd()
+	term.setCursorBlink(false)
+	term.setBackgroundColor(osStuff.settings.loginColor)
+	term.clear()
+	--just in case
+	if not fs.exists"library/acc/admin" then 
+	  fs.makeDir"library/acc/admin"
+	end 
+
+
+
+
+
+	local ok,accType,pass=pcall(function()
+			--temp:
+		if not game then game={} function game.l(a) end end 
+
+		local osStuff = osStuff or {}
+		osStuff.prgName = osStuff.prgName or function(path)--ripped from osStuff
+			string.gsub(path,"/","\\")
+			local a
+			while true do 
+				a=string.find(path,"/")
+				if not a then 
+					break
+				end 
+				path = string.sub( path, a+1, #path )
+			end 
+			return path 
+		end 
+		osStuff.g = osStuff.g or function(a) return a end --they'll see reeeaally shortened, bad-grammered, engrish versions of everything
+		osStuff.p = osStuff.p or function(a) print(a) end 
+
+		--get password
+		
+		--find accs
+		local b = fs.list"/library/acc/"
+		for i=1,#b do 
+			if b[i]=="admin" then 
+				table.remove(b,i)
+			end 
+		end 
+		local a = fs.list"/library/acc/admin"
+		for i,o in pairs(a) do
+			table.insert(b,"admin/"..o)
+		end 
+		local pass
+
+		if b[1] then
+			local c
+			local z = function(a) if not a then term.setBackgroundColor(osStuff.settings.loginColor) term.clear() env.osStuff.popup(nil,7,25,nil,osStuff.g('usrNoExist'),osStuff.g('accountNoExist'),false) end return a end
+			repeat --osStuff.textPopup(x,y,width,buttons,text,topText,dontuseXButton)
+				local ta=env.osStuff.textPopup(nil,7,25,{{x=2}},osStuff.g"entUsr",osStuff.g"username",true)
+				for i=1,#b do 
+					if osStuff.prgName("/library/acc/"..b[i])==(ta or {})[1] then 
+						c=i
+					end 
+				end 
+			until z(c)
+			if c then 
+				local f = open("library/acc/"..b[c],"r")
+				if f then 
+					pass=f.readAll()
+					f.close()
+				else 
+					osStuff.p'usrNoExist'
+					while true do coroutine.yield() end 
+				end
+				for i=1,4 do
+					local ta=env.osStuff.textPopup(nil,7,25,{{x=2}},osStuff.g"plzentpass",osStuff.g"attempt"..tostring(i).."/4",true,"*")
+					if (ta or {})[1] == pass then 
+						--is type admin?
+						term.setBackgroundColor(osStuff.backColor)
+						term.setTextColor(osStuff.textColor)
+						term.clear()
+						term.setCursorPos(1,1)
+						if string.sub(b[c],1,5) =='admin' then 
+							return "admin",pass
+						end 
+						return "guest",pass
+					end 
+				end
+				term.setBackgroundColor(osStuff.settings.loginColor)
+				term.clear()
+				env.osStuff.popup(nil,7,25,{},osStuff.g('outAttempt'),osStuff.g('outAttempt'),true)
+				while true do coroutine.yield() end
+			end
+		else 
+			local input
+			while true do 
+				input = env.osStuff.textPopup(nil,7,25,{{x=2}},osStuff.g('noPassFound'),osStuff.g'mkAccount',true,"*")
+				if input then 
+					--print"Confirm:"
+					term.setBackgroundColor(osStuff.settings.loginColor)
+					term.clear()
+					local confirm = env.osStuff.textPopup(nil,7,25,{{x=2}},osStuff.g('confirmMore'),osStuff.g'confirm',true,"*")
+					if  (confirm or {})[1] == input[1] then 
+						break 
+					else 
+						term.setBackgroundColor(osStuff.settings.loginColor)
+						term.clear()
+						env.osStuff.popup(nil,7,25,nil,osStuff.g('passNoMatch'),osStuff.g('failed'))
+					end
+				end 
+			end
+			--write 
+			local f=open("library/acc/admin/root","w")
+			f.writeLine(input[1])
+			f.close()
+			--set permissions
+			env.osStuff.popup(nil,4,25,nil,'Your user name is "root" and password is "'..input[1]..'". "root" is an administrative account, and its password can be found @ /library/acc/admin/ . You will need to login to an administrative account and retype your password to view this.','Success!')
+			term.setBackgroundColor(osStuff.backColor)
+			term.setTextColor(osStuff.textColor)
+			term.clear()
+			term.setCursorPos(1,1)
+			return "admin",input[1]
+		end
+	end)
+	if not ok then
+		--something went wrong(they probably terminated it. They can do that all they want, they won't get into the computer.)
+		pcall(function() print"pswd has crashed. Please reboot." print(ok,accType) end)
+		while true do coroutine.yield() end 
+	end
+	game.l("Logging in as type "..accType)
+	return accType,pass
+end 
+
+
+
+
+
+
+
+
+
+
+
+
+
+function osStuff.int()--should be init, but too late to change it now
+	--game.quit()
+	--os.loadAPI"Game-Engine/game"--this is to fix issues with term.redirect() inside game-engine, aswell as get it into the correct environment
+	--Overwrite the Game-Engine console to work with this
+	game.l"~~System specifications~~"
+	local hasFenv =false
+	if setfenv then 
+	hasFenv = true 
+	end 
+	game.l("_VERSION : "..(_VERSION or "nil").." , _LUAJ_VERSION : "..(_LUAJ_VERSION or "nil").." , _CC_VERSION : "..(_CC_VERSION or "nil").." , _MC_VERSION : "..(_MC_VERSION or "nil").." , osStuff.version : "..tostring(osStuff.version).." , setfenv availiable : "..tostring(hasFenv))
+	osStuff.loadSettings()
+	sleep(0)
+	
+	runStartups('library/api',1,'library/api')
+	
+	term.setBackgroundColor(osStuff.backColor or 1)
+	term.setTextColor(osStuff.textColor or 1)
+	term.clear()
+	term.setCursorPos(1,1)
+	term.setCursorBlink(false)
+	local r = math.random(1,150)--1/50 chance to get easter egg
+	if r==1 then 
+		osStuff.specialPrint"GLaDOS V2"
+		noSplash = false 
+		osStuff.splashes = {"Oh, how are you holding up? BECAUSE I'M A POTATO."}
+	elseif r==2 then 
+		osStuff.specialPrint"Illuminati Secrets Browser V3"
+		noSplash = false 
+		osStuff.splashes = {"Yes, blame bush.\nIt makes our life MUCH easier."}
+	elseif r==3 then 
+		osStuff.specialPrint"Badwolf VBadwolf.badwolf"
+		noSplash = false 
+		osStuff.splashes={"Badwolf."}
+	else 
+		osStuff.specialPrint(osStuff.os.." V"..tostring(osStuff.version))
+	end
+	--let's select from one of our fine splashes
+	if args[1] ~="nosplash" then
+		osStuff.doSplash()
+
+	else 
+		term.setCursorPos(1,2)
+	end
+	term.setCursorBlink(true)
+	--request password
+	if args[3]~="nopass" then 
+		--local a = loadfile"library/pswd"
+		local ok,err,pss
+		if osStuff.settings.graphicalLogin then 
+			ok,err,pss=pcall(guiPswd)--pswd is allowed full fs access
+		else 
+			ok,err,pss=pcall(pswd)
+		end 
+		accType = err
+		accPass = pss
+		if not ok then
+			print("pswd had error "..tostring(err).." . Hanging.")
+			while true do 
+				coroutine.yield() 
+			end 
+		end 
+	end
+		--display MOTD
+	local a = fs.open("/library/motd","r")
+	local f 
+	if a then 
+	f = a.readAll() 
+	a.close() 
+	end 
+	print(f or "a")
+	if noDoPrints then 
+		print"Run startx to start the GUI."
+	end 
+	if runProg then 
+	pcall(function() shell.run(runProg) end)
+	end 
+	--Run startup programs 
+
+	
+	runStartups("library/startup",1,"library/startup")
+	if osStuff.settings.startxOnStart then 
+		osStuff.cRun("library/programs/startx",{})
+	end 
+	osStuff.doMain(true)
+end
+
+function osStuff.doMain(noDoPrints)
+	if not noDoPrints then 
+		term.setBackgroundColor(osStuff.backColor or 1)
+		term.setTextColor(osStuff.textColor or 1)
+		term.clear()
+		term.setCursorPos(1,1)
+		term.setCursorBlink(false)
+		osStuff.specialPrint(osStuff.os.." V"..tostring(osStuff.version))
+		--let's select from one of our fine splashes
+		if args[1] ~="nosplash" then
+			osStuff.doSplash()
+
+		else 
+			term.setCursorPos(1,2)
+		end
+		term.setCursorBlink(true)
+	end 
+	local pastCommands={}
+	while true do 
+		local noDo
+		osStuff.doDir()
+		--read input
+		term.setBackgroundColor(osStuff.backColor or 1)
+		term.setTextColor(osStuff.textColor or 1)
+		input = osStuff.readRecolored(nil,pastCommands,shell.complete,osStuff.settings.autoCompTColor,osStuff.settings.autoCompBGColor)
+		--add this to prev commands
+		if string.find(input,"%a") or string.find(input,"%d") then 
+			pastCommands[#pastCommands+1]=input
+		else 
+			noDo =true
+			printError(osStuff.g"Nothing"..osStuff.g"noExist")
+		end
+		--sub the first part of the string out
+		local inFirstChar = string.sub(input,1,1)
+		if inFirstChar ~=";" and inFirstChar~=":" then
+			if not noDo then 
+				local _,y=term.getCursorPos()
+				term.setCursorPos(1,y-1)
+				osStuff.doDir()
+				term.setTextColor(osStuff.commandColor or 1)
+				term.setTextColor(osStuff.textColor or 1)
+				print()
+				if input == "console" then 
+					game.openConsole()
+				else 
+					osStuff.resetClear()
+					local oldCur = term.current()
+					env.shell.run(input)
+					term.redirect(oldCur)
+					if osStuff.didClear() then 
+						local _,cury = term.getCursorPos()
+						local _,termy = term.getSize()        
+						term.setBackgroundColor(osStuff.backColor)
+						for i=cury,termy do           
+							term.setCursorPos(1,i)
+							term.clearLine()
+						end
+
+						term.setCursorPos(1,cury)
+					end 
+					-- Reset background colors: 
+					term.setBackgroundColor(osStuff.backColor)
+					term.setTextColor(osStuff.commandColor)
+				end
+			end 
+		else
+			local inputF
+			--they're running a lua command
+			--[[local _,y=term.getCursorPos() recode this
+			term.setCursorPos(1,y-1)
+			osStuff.doDir()
+			term.setTextColor(osStuff.promptColor or 1)
+			term.setTextColor(osStuff.commandColor or 1)
+			write(inFirstChar)
+			term.setTextColor(osStuff.textColor or 1)
+			input=string.sub(input,2,#input)
+			print(input)
+			local returnAsVar = loadstring(" return "..input)
+			local normal = loadstring(input)
+			if type(returnAsVar) == "function" then 
+				normal = returnAsVar
+			elseif type(normal) ~="function" then 
+				printError(normal)
+			end 
+			setfenv(normal,env) 
+			local ok,res = pcall(normal)
+			if ok then 
+				local ok2, res2 = pcall(textutils.serialize, res)
+				if ok2 then 
+				print(res2)
+				else 
+				print(tostring(res))
+				end 
+			else 
+				printError(res)
+			end ]]
+		end
+	end
+end 
+
+
+
+
+
+
+
+--search keyword: searchMeta
+--------------------
+----[[Metadata]]----
+--------------------
+
+--meta stuff, based of off lyqyd's code @ http://www.computercraft.info/forums2/index.php?/topic/18646-
+--modifications to standard found @ http://jacksonmcneill.ddns.net/[os]_meta
+-- Create local references to fs functions before they are modified
+local appAccount = "app" --Changing this can configure what apps are treated as. Treated as "app" by default.
+-- Create local references to meta functions, as these could be changed by the user:
+
+-- Create local references to overwritten fs functions
+local isReadOnly = fs.isReadOnly
+--Note: The open reference is above int, because it needs it
+local delete = fs.delete
+local copy = fs.copy 
+local move = fs.move
+local isDir = fs.isDir 
+local combine = fs.combine
+local exists = fs.exists
+local list = fs.list 
+-- I misunderstood this shell function ( :P ) so here's what I thought it did. I made a local reference anyway.
+local function resolve(a)
+	return combine(a,"")
+end 
+--Create a local reference to sleep
+local sleep = sleep 
+--Create a reference to os.time() on the last password attempt
+local lastTime
+
+
+local function parseMeta(metaPath) -- Function by Lyqyd
+	if exists(metaPath) then
+		local handle = open(metaPath, "r")
+		if handle then
+			local data = {}
+			local fn, err = load(handle.readAll(),"metaParseRead","t",data)
+			handle.close()
+			if fn then
+				--setfenv(fn, data) ^^ replaccement
+				local success, err = pcall(fn)
+				if success then
+					return data
+				else
+					return nil, err
+				end
+			else
+				return nil, err
+			end
+		else
+			return nil, "could not read metadata"
+		end
+	else
+		return nil, "no metadata found"
+	end
+end 
+function osStuff.getMetadataForFile(path) -- Function by lqyqd
+	return parseMeta(combine(".meta", path))
+end
+local getFile = osStuff.getMetadataForFile
+local function getMetadataForFolder(folderPath, metadata) -- Function by lqyyd and modified by Jackson McNeill
+	if not metadata then metadata = {} end
+	for _, file in ipairs(list(folderPath)) do
+		local path = combine(folderPath, file)
+		if isDir(path) then
+			getMetadataForFolder(path, metadata)
+		else
+			--print('a '..path)
+			metadata[path] = getFile(path)
+		end
+	end
+	return metadata
+end
+osStuff.getMetadataForFolder=getMetadataForFolder
+function osStuff.getAllMetadata() -- Function by Lyqyd
+	if exists(".meta") and isDir(".meta") then
+		return getMetadataForFolder(".meta")
+	else
+		return nil, "no metadata available"
+	end
+end
+function osStuff.getLowestFolderPerms(folder,type) -- slightly copied from readonly
+	local entire = getMetadataForFolder(folder)
+	if not entire then return end 
+	local result = 2
+	for fileN,a in pairs(entire) do -- a is metadata
+	 -- print(fileN)print(a)
+	local user
+	--print(textutils.serialize(a))
+	if a then 
+		if a.permissions then 
+		--print(a.permissions[type])
+		user = a.permissions[type] or 2 
+		end 
+	end 
+	user = user or 2 
+	result = math.min(result,user) -- they both need the same priviliges or the other one is void 
+	end
+	return result 
+end 
+local getAllMeta = osStuff.getAllMetadata
+local getMetaForFile = osStuff.getMetadataForFile -- We need a local reference so they cannot modify it
+local lowestPerms = osStuff.getLowestFolderPerms
+local function inputCheck(variables,types,whatFunction)
+--  traceEnter"inputCheck"
+	--check if it's a table
+	whatFunction = whatFunction or "InputCheck(user)"
+	if type(variables)=="table" and type(types)=="table" and type(whatFunction) =="string" then else
+	writeErrorToConsole("inputCheck(in-function) - If you can't even give inputCheck the right type of variable, you're going to have issues. Wanted table, table, string got "..type(variable)..", "..type(variables)..", "..type(whatFunction))
+	traceExit"inputCheck"
+	return false
+	end
+	local bad,good
+	local actuallyReport = ""
+	for i=1,#types do
+	--writeToConsole("b "..types[i])------------------
+	if type(types[i])=="string" then--working
+		types[i]={types[i]}--"string" --> types[i][1] > "string"
+		--writeToConsole("a "..types[i][1])-------------------------------------------------------
+	end
+	good =false
+	for o=1,#types[i] do
+		
+		if types[i][o] == type(variables[i]) then
+		--writeToConsole"good"------------------------------------------------------
+		--writeToConsole("m: "..types[i][o].." w: "..type(variables[i]))------------
+		good = true 
+		break
+		else
+		good= good or false
+		--writeToConsole"bad"---------------
+		end 
+		--writeToConsole("p "..tostring(bad))---------------
+		--writeToConsole("f "..tostring(bad))---------------
+	end
+	actuallyReport = actuallyReport..type(variables[i])..", " --ex: "table, table, "
+	end
+	--fix this later, but for now:
+	bad = not good
+ -- writeToConsole(actuallyReport.."also "..tostring(bad)..tostring(good))-------------------------------------
+	if bad then --this is just plain english with bad grammer :D
+	actuallyReport=string.sub(actuallyReport,1,#actuallyReport-2)--following ex, "table, table"
+	--get all of what it was sopposed to be in a report
+	perfectReport = whatFunction.." - Expected "
+	for i=1,#types do
+		for o=1,#types[i] do
+		--writeToConsole(types[i])-----------------------------------------------------
+		perfectReport=perfectReport..types[i][o].." or "--ex "table or string or "
+		end
+		perfectReport=string.sub(perfectReport,1,#perfectReport-4)..", " --ex "table or string, "
+	 -- perfectReport=perfectReport..types[i][1]..", "  --ex: "Table, Table, "
+	end
+	writeErrorToConsole(string.sub(perfectReport,1,#perfectReport-2).."; got "..actuallyReport)
+	--traceExit"inputCheck"
+	return true
+	end
+	--traceExit"inputCheck"
+end
+local function writeMeta(file,name,auth,ftype,times,perm,otherStuff)
+	if string.sub(resolve(file),1,6)==".meta/" then
+	return false 
+	end 
+	local a = getMetaForFile(file)
+	--[[if isDir(file) then 
+	return writeMeta(file.."/osFolderMetadata",name,auth,ftype,time,perm,otherStuff)
+	end ]]
+	if not a then --creating new 
+	if inputCheck({file,name,auth,ftype,times,perm,otherStuff},{{"string"},{"string",},{"string",},{"string",},{"table",},{"table"},{"table","nil"}},"osStuff.writeMeta(internal)(new)") then 
+		return false 
+	end 
+	a={}
+	a.name = name
+	a.author = auth
+	a.type = ftype 
+	a.timestamp = times 
+	a.permissions = perm
+	else --overwriting old
+	if inputCheck({file,name,auth,ftype,times,perm,otherStuff},{{"string"},{"string","nil"},{"string","nil"},{"string","nil"},{"table","nil"},{"table","nil"},{"table","nil"}},"osStuff.writeMeta(internal)(changing)") then 
+		return false 
+	end
+
+	a.name = name or a.name
+	a.author = auth or a.author
+	a.type = ftype or a.type 
+	
+	times = times or {}
+	times.accessed = times.accessed or (a.timestamp or {}).accessed
+	times.modified = times.modified or (a.timestamp or {}).modified
+	times.created = times.created or (a.timestamp or {}).created
+	a.timestamp = times or a.timestamp 
+	perm = perm or {}
+	perm.admin = perm.admin or (a.permissions or {}).admin
+	perm.app = perm.app or (a.permissions or {}).app
+	perm.guest = perm.guest or (a.permissions or {}).guest
+	a.permissions = perm or a.permissions
+	end 
+	-- Are they an admin? 
+
+	--write it
+	local c =""
+	--1.7.4 poor fix:
+	a._ENV = nil 
+	for i,o in pairs(a) do 
+		if type(o)=="string" then 
+			c=c..i.." = '"..o.."'\n"
+		elseif type(o)=="table" then
+			c=c..i.." = "..textutils.serialize(o).."\n"
+		else 
+			return game.e("Unexpected variable type while piecing together string: "..type(o))
+		end 
+	end
+	--game.l(c) ----debug
+	c=c.."\n"..(otherStuff or "")
+	local b = open(combine(".meta", file),"w")
+	if b then 
+		b.write(c)
+		b.close()
+	else 
+		return game.e("Could not open metadata for "..file.."!")
+	end 
+end 
+function osStuff.writeMeta(file,name,auth,ftype,times,perm,pass)
+	if lastTime then 
+	if os.time()-lastTime <.02 then
+		lastTime = os.time()
+		return error"[os] Inputing passwords too quickly; please wait 1 second before trying a password!"
+	end 
+	end  
+	if pass == accPass then 
+	-- Do they have access?
+	local b = getMetaForFile(file)
+	if b then 
+		if b.permissions then 
+			if b.permissions[accType] then --we let them off if there's no perms set
+				if b.permissions[accType] ~= 2 and accType ~= "admin" then
+					return game.e"You do not have permission to access this file!"
+				end 
+			end 
+		end
+	end 
+	if accType ~="admin" then 
+		permissions = b.permissions or {}
+		permissions.admin = 2 
+		permissions.guest = 2
+		--they are allowed to configure app permissions
+	end 
+	writeMeta(file,name,auth,ftype,times,perm)
+	return true
+	end 
+	lastTime = os.time()
+	return false
+
+end 
+
+
+function osStuff.appMeta(file,name,auth,ftype,times)
+	local a = getMetaForFile(file)
+	if not a then --creating new 
+		if game.inputCheck({file,name,auth,ftype,times},{{"string"},{"string",},{"string",},{"string",},{"table",}},"appMeta(new)") then 
+			return false 
+		end
+		local permissions = {admin = 2, guest = 2, apps = 2}
+		else 
+		if game.inputCheck({file,name,auth,ftype,times,perm},{{"string"},{"string","nil"},{"string","nil"},{"string","nil"},{"table","nil"},{"table","nil"}},"appMeta(changing)") then 
+		 --game.l"no"
+			return false 
+		end
+		-- Do they even have access to this file? 
+		local b = getMetaForFile(file)
+		--we let them off if no permissions/no app permissions
+		if b.permissions then 
+			if b.permissions[accType] then 
+				if b.permissions.app ~= 2 and b.permissions[accType] ~= 2 then  -- Not only do apps need perms to this, but the user using the app does too.
+					if b.permissions.app or b.permissions[accType] then 
+						return game.e"You do not have permission to access this file!"
+					end 
+				end 
+			end 
+		end 
+	end 
+	writeMeta(file,name,auth,ftype,permissions,times)
+	return true 
+end 
+
+
+
+
+
+
+
+
+--]]
+
+
+
+function fs.isReadOnly(file)
+	if type(file) ~= "string" then 
+		error("fs.isReadOnly - Expected string",2)
+	end 
+	if string.sub(resolve(file),1,6) == ".meta/"  then 
+		return true 
+	end
+	if isDir(file) then 
+		local level = math.min( lowestPerms(file,accType) , lowestPerms(file,appAccount) )
+		if level == 1 then 
+			return true 
+		elseif level == 0 then 
+			return "noAccess"
+		end 
+	end 
+	
+
+	local a = getFile(file)
+	local user,app
+	if a then 
+		if a.permissions then 
+			user = a.permissions[accType] or 2 
+			app = a.permissions[appAccount] or 2 
+		end 
+	end 
+	user = user or 2 
+	app = app or 2 
+	local result = math.min(user,app) -- they both need the same priviliges or the other one is void 
+	if result == 1 then 
+		return true 
+	elseif result == 0 then 
+		return "noAccess"
+	end 
+	return isReadOnly(file )
+end 
+function osStuff.sudoReadOnly(file)
+	if accType ~= "admin" then 
+		if string.sub(resolve(file),1,6) == ".meta/"  then 
+			return true 
+		end
+		local a = getFile(file)
+		if a then 
+			if a.permissions then 
+				if a.permissions[accType] == 2 then 
+					return
+				elseif a.permissions[accType]== 1 then 
+					return true 
+				elseif a.permissions[accType] == 0 then 
+					return "noAccess" 
+				end 
+			end 
+		end 
+	end 
+end 
+
+--old snippit from readOnly
+--[[
+		if a.permissions[appAccount] then --apps
+		if a.permissions[accType] == 1 then  
+			if a.permissions[appAccount] == 0 then --apps
+			return "noAccess" -- Allows programs to support having no access, but unsupported programs will at least not try to write to the files
+			elseif a.permissions[appAccount]==1 then --aps
+			return true 
+			end 
+		elseif a.permissions[accType]==0 then 
+			return "noAccess"
+		end 
+		if a.permissions[appAccount] == 1 then --apps
+			return true 
+		elseif a.permissions[appAccount] == 0 then --apps
+			return "noAccess" -- Allows programs to support having no access, but unsupported programs will at least not try to write to the files
+		end 
+		end 
+	end 
+	end --]]
+local function n() return "Permission Denied"  end 
+local function e() error("Permission Denied",2) end
+local function t() end
+local readOnly = fs.isReadOnly -- We have to create a local reference, or this could be easily edited.
+function fs.open(file,mode)
+	local a = readOnly(file) -- check meta/native read-only
+	--print(a)
+	if mode == "w" or mode == "a" then 
+	if a then -- we'll need to return something special
+		return { 
+		write = e,
+		writeLine = e,
+		flush = e, 
+		close = t,
+		}
+	else 
+		if open(file,"r") then 
+		writeMeta(file,nil,nil,nil,{modified = (month or "ERR")..", "..(day or "ERR")..", "..(clocktime or "ERR")})
+		else 
+		writeMeta(file,nil,nil,nil,{created = (month or "ERR")..", "..(day or "ERR")..", "..(clocktime or "ERR")})
+		end
+		return open(file,mode)
+	end
+	elseif mode == "r" then 
+		if a == "noAccess" then 
+			local readIt
+			local rtn = {
+			readLine = function() if not readIt then readIt = true return"Permission Denied"  end end, -- They will end up displaying this, most likely
+			readAll = n,
+			close = t,
+			} 
+			return rtn
+		else 
+			writeMeta(file,nil,nil,nil,{accessed = (month or "ERR")..", "..(day or "ERR")..", "..(clocktime or "ERR")}) -- If they overwrite this, they will achieve nothing.
+			return open(file,mode)
+		end 
+		elseif mode =="rb" then 
+		if a == "noAccess" then 
+			return {
+			read = n, -- They will end up displaying this, most likely
+			close = t,
+			} 
+		else 
+			return open(file,mode)
+		end 
+		elseif mode == "wb" or mode == "ab" then 
+		if a then 
+			return {
+			readLine = t,
+			close = t,
+			flush = t,
+			} 
+		else 
+			return open(file,mode)
+		end 
+	end 
+end 
+function fs.copy(a,b)
+	local c = readOnly(a) 
+	local d = readOnly(b) 
+	if d  == "noAccess" or d then
+		e()
+		return -- Just in case
+	elseif c == "noAccess" then 
+		e() 
+		return -- Just in case
+	end -- Copy the metadata
+	copy( fs.combine( ".meta" , a ) , fs.combine( ".meta", b ) )
+	return copy(a,b)
+end
+function fs.move(a,b)-- based of copy
+	local c = readOnly(a) 
+	local d = readOnly(b) 
+	if d then
+		e()
+		return -- Just in case
+	elseif c then 
+		e() 
+		return -- Just in case
+	end 
+	--move the metadata
+	pcall(  function()  move( fs.combine( ".meta" , a ) , fs.combine( ".meta", b ) )   end  )
+	return move(a,b)
+end
+function fs.delete(a)
+	local b = readOnly(a)
+	if b then 
+		e() 
+		return -- Just in case
+	end 
+	--delete metadata
+	delete( fs.combine( ".meta" , a ) )
+	return delete(a) 
+end
+local function check(file,mode,pass)
+	game.l(file )
+	if lastTime then 
+		if os.time()-lastTime <.02 then
+			lastTime = os.time()
+			game.l"e"
+			return error(osStuff.g"tooManyPasswords",2)
+		end 
+	end  
+	if pass == accPass then 
+		-- Do they have access?
+		local b = getMetaForFile(file)
+		if b then 
+			if b.permissions then 
+				if b.permissions[accType] then --we let them off if there's no perms set
+					if b.permissions[accType] ~= 2 then 
+						if not ( mode ~="a" and mode ~="w" and b.permissions[accType] == 1 ) then 
+							return false,game.e"You do not have permission to access this file!"
+						end 
+					end
+				end 
+			end  
+		end 
+		--Are they trying to access metadata as a non-admin?
+		if string.sub(resolve(file),1,6) == ".meta/" and accType ~=2 then 
+			lastTime = os.time()
+			return 1
+		end 
+		game.l"Y"
+		return true
+	end 
+	lastTime = os.time()
+	return 1
+end
+function osStuff.open(file,mode,pass)
+	game.l("o "..file)
+	if check(file,mode,pass) ==true then
+		return open(file,mode)
+	else 
+		return "w"
+	end 
+end  
+
+-- A c&p'd function
+function osStuff.delete(file,pass)
+	if check(file,"w",pass) ==true then
+		return delete(file)
+	else 
+		return "w"
+	end 
+end  
+function osStuff.move(file1,file2,pass)
+	if check(file1,"w",pass) ==true and check(file2,"w",pass)==true then
+		return move(file1,file2)
+	else 
+		return "w"
+	end 
+end  
+function osStuff.copy(file1,file2,pass)
+	if check(file1,"r",pass) ==true and check(file2,"w",pass)==true then
+		return copy(file1,file2)
+	else 
+		return "w"
+	end 
+end  
+
+
+--search keyword: searchNoMeta
+--------------------------------
+----[[Refuge from metadata]]----
+--------------------------------
+
+--Settings stuff:
+
+local function sdeepcopy(settings,file)
+	for i,o in pairs(settings) do 
+		game.l("get "..tostring(i))
+		if type(settings[i])==type(file[i]) then 
+			if type(settings[i])=="table" then 
+				game.l("table")
+				settings[i]=sdeepcopy(settings[i],file[i])
+			else 
+				game.l"n"
+				settings[i]=file[i]
+			end 
+		else 
+			game.l("s "..type(settings[i]).." f "..type(file[i]))
+		end 
+	end 
+	return settings
+end
+function osStuff.loadSettings()
+	--open the file
+	local f = open("library/settings","r")
+	if not f then return false end 
+	local fle = f.readAll()
+	f.close()
+	if not fle then return false end 
+	fle = textutils.unserialize(fle)
+	if not fle then return false end 
+	print"y"
+	--[[for i,o in pairs(osStuff.settings) do 
+		game.l(tostring(i))
+		game.l("s "..tostring(fle[i]))
+		if type(fle[i]) == type(osStuff.settings[i])  then 
+			if type(fle[i]) == "table" then 
+				settingsRecurser(i)
+			else 
+				osStuff.settings[i] = fle[i]
+				env.osStuff.settings[i] =fle[i]
+			end 
+		end 
+	end]]
+	osStuff.settings = sdeepcopy(osStuff.settings,fle)
+	--env.osStuff.settings = osStuff.settings
+end 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--search keyword: searchEnv
+-----------------------------
+----[[Environment stuff]]----
+-----------------------------
+function osStuff.runInKernelSpace(sprg,args,pass)
+	if lastTime then 
+		if os.time()-lastTime <.02 then
+			lastTime = os.time()
+			game.l"e"
+			return error(osStuff.g"tooManyPasswords",2)
+		end 
+	end 
+	if accType ~= "admin" then 
+		return 1 
+	elseif pass==accPass then 
+		local prg,er
+		if type(sprg) == "string" then 
+			prg,er=load(sprg,"userKernelSpaceProgram","t",_G)
+			if er then 
+				return 3,er 
+			end 
+		end 
+		return pcall(sprg,unpack(args or {}))
+	else 
+		lastTime=os.time()
+		return 2
+	end 
+end 
+--[[local function shallowcopy(orig)
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in pairs(orig) do
+			copy[orig_key] = orig_value
+		end
+	else -- number, string, boolean, etc
+		copy = orig
+	end
+	return copy
+end
+local function stillneivecopy(orig)
+	local copy = {}
+	for i,o in pairs(orig) do 
+	copy[i] = shallowcopy(o)
+	end
+	return copy
+end ]]
+
+local function deepcopy(orig)
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			if orig_key ~="_G" and orig_key ~="_ENV" then 
+			copy[deepcopy(orig_key)] = deepcopy(orig_value)
+			end
+		end
+		setmetatable(copy, deepcopy(getmetatable(orig)))
+	else -- number, string, boolean, etc
+		copy = orig
+	end
+	return copy
+end
+
+local runningProgram
+--[[loadfile = function( _sFile, _tEnv )
+	local file = env.fs.open( _sFile, "r" )
+	if file then
+		local func, err = load( file.readAll(), fs.getName( _sFile ), "t", _tEnv )
+		file.close()
+		return func, err
+	end
+	return nil, "File not found"
+end]]
+env = deepcopy(_G)
+local function r(input)
+	local func = load("return osStuff.settings."..input,"settings","t",myEnv)
+	if func then 
+		return func() 
+	end 
+end 
+
+--[[env.osStuff.settings = setmetatable({},
+{__index=function(self,input,next)
+	game.l"getSet"
+	local func = load("return osStuff.settings."..input,"settings","t",myEnv)
+	if func then 
+		return func() 
+	end 
+    game.l(input.. " l "..tostring(next))
+	if input=="gc" and next=="mColor" then 
+		print"g"
+		return osStuff.settings.gc.mColor 
+	end 
+	--setfenv(r,myEnv)
+	return r(input)
+	return osStuff.settings[input]
+end })]]
+env.osStuff.settings = osStuff.settings
+
+--Overwiting printerror to use our colorscheme 
+function printError(txt)
+	--log to console
+	((env.game or {}).e or function()end)("printError text: "..txt)
+	env.term.setTextColor(osStuff.errorColor)
+	print(txt)
+	env.term.setTextColor(osStuff.textColor)
+end 
+env.printError=printError
+--env = _G
+
+env.os.pullEvent = ospe
+local function run(prg, ... )
+	if not prg then 
+		printError(osStuff.g"Nothing"..osStuff.g"noExist")
+	else
+		local prog=env.shell.resolveProgram(prg)
+		runningProgram = prog
+		if prog then 
+			local result = env.os.run(env,prog,...)
+		else 
+			printError(prg.." does not exist")
+		end 
+	end 
+end 
+function env.os.loadAPI(path)
+	local _env = setmetatable({},{__index=env})
+	local pg,err = loadfile(path,_env)
+	if pg then
+		setfenv(pg,_env)  --^ replacement
+		pg()
+		else 
+			printError(err)
+		end
+	local cont = {} 
+	for i,o in pairs(_env) do 
+		cont[i] = o 
+	end 
+	env[fs.getName(path)] = cont
+	return true
+end 
+
+function env.os.run( _tEnv, _sPath, ... )
+	local tArgs = { ... }
+	--setmetatable( tEnv, { __index = env } ) 
+	local fnFile, err = loadfile( _sPath , _tEnv)
+	game.l(tostring(fnFile).." "..tostring(err).." : ".._sPath)
+	if fnFile then
+		--setmetatable( tEnv, { __index = function(t,k) return _G[k] end } )
+		--setfenv( fnFile, tEnv ) replaced in loadfile
+		local ok, err = pcall( function()
+			fnFile( unpack( tArgs ) )
+		end )
+		if not ok then
+			if err and err ~= "" then
+				printError( err )
+			end
+			return false
+		end
+		return true
+	end
+	if err and err ~= "" then
+		printError( err )
+	end
+	return false
+end
+
+function env.shell.run( ... )
+	local tWords = tokenise( ... )
+	local sCommand = tWords[1]
+	if sCommand then
+		runningProgram = sCommand
+		return run( sCommand, unpack( tWords, 2 ) )
+	end
+	return false
+end
+local function noSupport() printError"Sorry, [os] does not support multishell shell functions." end 
+env.shell.openTab = noSupport
+env.shell.switchTab = noSupport
+env.lan = lan
+function env.shell.getRunningProgram() return runningProgram end 
+function osStuff.newDaemon(funct,name)
+	if not routines[name.."d"] then 
+		--setfenv(funct,env) unnesiary
+		osStuff.newRoutine(name.."d",funct,false)
+	else 
+		error("Daemon "..name.." already exists!",2)
+	end 
+end 
+env.osStuff.newDaemon = osStuff.newDaemon
+local oldRe = env.term.redirect
+function env.term.redirect(obj)
+	buffers[curRout] = obj 
+	oldRe(obj)
+	if not env.term.write == obj.write then 
+		game.e"Failed to redirect the term!"
+	end 
+	os.queueEvent"redirected"
+	coroutine.yield()
+end
+
+topEnv = true
+local function loadGame()
+	--local _ENV = env
+	--_G = env
+
+	--print(_ENV == env)
+	--print(_G == env)
+	--sleep(1)
+	env.os.loadAPI"Game-Engine/redirect"
+	env.os.loadAPI"Game-Engine/game"
+	env.os.loadAPI"/library/buffer"
+	game,buffer=env.game,env.buffer
+	local gameWritetoConsole = env.game.writeToConsole
+	function env.game.writeToConsole(txt)
+	local year,month,day,clocktime,pm = (env.osStuff.getTime or function()end)()
+	return gameWritetoConsole("["..(clocktime or "Clock service not started yet").."] "..tostring(txt))
+	end 
+	env.game.l = env.game.writeToConsole 
+	function env.game.writeErrorToConsole(txt)
+	game.writeToConsole("[ERROR] "..tostring(txt))
+	return txt 
+	end 
+	env.game.e=env.game.writeErrorToConsole
+	game.l"start"
+end 
+if args[4]~="stop" then 
+	--osStuff.int()
+	print"start" 
+	setfenv(loadgame,env)
+	loadGame()
+	env._G = env 
+	env._ENV = env 
+	osStuff.newDaemon(pasted,"paste")
+	osStuff.makeActive("pasted")
+	 osStuff.newDaemon(timekeeping,"time")
+	osStuff.newRoutine("term",osStuff.int,false)
+	osStuff.makeActive("term")
+	game.l"startroutines"
+	print"startroutines"
+	initRoutines()
+end 
+game.l"[OS] Has finished executing. This is NOT supposed to happen!"
